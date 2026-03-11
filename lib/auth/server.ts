@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { OperatorContext } from '@/types/operator'
 
 export interface BusinessContext {
   businessId: string
@@ -60,4 +61,52 @@ export async function getUser(): Promise<AuthUser | null> {
   } catch {
     return null
   }
+}
+
+/**
+ * Gets the operator context for the current Supabase session.
+ * Returns null if the user has no operator_users row.
+ * Never throws.
+ */
+export async function getOperatorContext(): Promise<OperatorContext | null> {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) return null
+
+    const { data: membership, error: memberError } = await supabase
+      .from('operator_users')
+      .select('operator_org_id, role')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single()
+
+    if (memberError || !membership) return null
+
+    // Defensive: reject unrecognized roles — do NOT add a fallback default like ?? 'member'
+    const role = membership.role as string
+    if (role !== 'admin' && role !== 'viewer') return null
+    return {
+      operatorOrgId: membership.operator_org_id as string,
+      userId: user.id,
+      role: role as 'admin' | 'viewer',
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * For use in Next.js Server Components and route handlers.
+ * Calls redirect('/login') if the user has no operator context.
+ * Returns the operator context when the user is authenticated.
+ */
+export async function checkOperatorAccessOrThrow(): Promise<OperatorContext> {
+  const { redirect } = await import('next/navigation')
+  const context = await getOperatorContext()
+  if (!context) {
+    redirect('/login')
+  }
+  return context
 }
