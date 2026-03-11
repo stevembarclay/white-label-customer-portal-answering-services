@@ -125,12 +125,12 @@ export async function validateBearerToken(
     return { valid: false, status: 403, message: `API key missing required scope: ${requiredScope}.` }
   }
 
-  void supabase
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', keyRow.id)
-    .then(() => undefined)
-    .catch(() => undefined)
+  void Promise.resolve(
+    supabase
+      .from('api_keys')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', keyRow.id)
+  ).catch(() => undefined)
 
   return {
     valid: true,

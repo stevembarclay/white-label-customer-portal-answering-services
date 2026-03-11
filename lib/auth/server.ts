@@ -108,5 +108,5 @@ export async function checkOperatorAccessOrThrow(): Promise<OperatorContext> {
   if (!context) {
     redirect('/login')
   }
-  return context
+  return context as OperatorContext
 }
