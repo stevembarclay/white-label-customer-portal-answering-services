@@ -22,7 +22,7 @@ export function PHIToggleDemo({ value, onChange, label = 'Show PHI' }: PHIToggle
         onClick={() => onChange(!value)}
         className={cn(
           'flex items-center gap-2',
-          value ? 'border-bronze text-primary' : 'border-steel text-muted-foreground'
+          value ? 'border-slate-400 text-slate-700' : 'border-slate-300 text-muted-foreground'
         )}
       >
         {value ? (
