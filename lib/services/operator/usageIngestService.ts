@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { fireWebhookEvent } from '@/lib/services/operator/webhookService'
+import { logger } from '@/lib/utils/logger'
 
 export interface ParsedRow {
   date: string
@@ -19,6 +21,8 @@ export interface IngestResult {
   status: 'processed' | 'error'
   issue?: string
 }
+
+const THRESHOLD_LEVELS = [75, 90, 100] as const
 
 /**
  * Parse a CSV string into structured rows.
@@ -102,6 +106,75 @@ export function validateRow(
   return { valid: true }
 }
 
+export function checkBillingThresholds(input: {
+  previousMinutes: number
+  newMinutes: number
+  includedMinutes: number
+}): number[] {
+  const { previousMinutes, newMinutes, includedMinutes } = input
+  const prevPct = (previousMinutes / includedMinutes) * 100
+  const newPct = (newMinutes / includedMinutes) * 100
+
+  return THRESHOLD_LEVELS.filter((level) => prevPct < level && newPct >= level)
+}
+
+export async function checkAndFireThresholdAlerts(
+  businessId: string,
+  operatorOrgId: string,
+  periodDate: string,
+  newRowMinutes: number,
+  previousRowMinutes: number
+): Promise<void> {
+  const supabase = await createClient()
+  const periodMonth = new Date(`${periodDate}T00:00:00Z`)
+  const monthStart = new Date(Date.UTC(periodMonth.getUTCFullYear(), periodMonth.getUTCMonth(), 1))
+    .toISOString().slice(0, 10)
+  const monthEnd = new Date(Date.UTC(periodMonth.getUTCFullYear(), periodMonth.getUTCMonth() + 1, 0))
+    .toISOString().slice(0, 10)
+
+  const { data: usagePeriods } = await supabase
+    .from('usage_periods')
+    .select('total_minutes')
+    .eq('business_id', businessId)
+    .eq('status', 'processed')
+    .gte('period_date', monthStart)
+    .lte('period_date', monthEnd)
+
+  const totalAfter = ((usagePeriods ?? []) as Array<{ total_minutes: number | string }>).reduce(
+    (sum, r) => sum + Number(r.total_minutes),
+    0
+  )
+  const totalBefore = totalAfter - newRowMinutes + previousRowMinutes
+
+  const { data: bucketRules } = await supabase
+    .from('billing_rules')
+    .select('id, included_minutes')
+    .eq('business_id', businessId)
+    .eq('type', 'bucket')
+    .eq('active', true)
+
+  for (const rule of (bucketRules ?? []) as Array<{ included_minutes: number | null }>) {
+    if (!rule.included_minutes) continue
+    const crossed = checkBillingThresholds({
+      previousMinutes: totalBefore,
+      newMinutes: totalAfter,
+      includedMinutes: rule.included_minutes,
+    })
+    for (const level of crossed) {
+      logger.info(`Billing threshold ${level}% crossed for business ${businessId}`)
+      await fireWebhookEvent(operatorOrgId, `billing.threshold_${level}`, {
+        businessId,
+        thresholdPercent: level,
+        totalMinutes: totalAfter,
+        includedMinutes: rule.included_minutes,
+      }).catch((err) => logger.error('Failed to fire threshold webhook', { err }))
+      // TODO: send alert email to all operator_users with role='admin' for this org
+      // Use Supabase Auth admin API: supabase.auth.admin.generateLink or a transactional
+      // email provider. Query operator_users at send time — do not store on subscription.
+    }
+  }
+}
+
 /**
  * Upserts a set of ParsedRows into usage_periods for the given operator.
  * Rows that fail validation get status='error'; valid rows get status='processed'.
@@ -138,6 +211,16 @@ export async function ingestRows(
       continue
     }
 
+    const { data: existingRow } = await supabase
+      .from('usage_periods')
+      .select('total_minutes')
+      .eq('business_id', row.businessId)
+      .eq('period_date', row.date)
+      .maybeSingle()
+    const previousRowMinutes = existingRow
+      ? Number((existingRow as { total_minutes: number | string }).total_minutes)
+      : 0
+
     const { error } = await supabase.from('usage_periods').upsert({
       business_id: row.businessId,
       operator_org_id: operatorOrgId,
@@ -154,6 +237,13 @@ export async function ingestRows(
     if (error) {
       results.push({ businessId: row.businessId, date: row.date, status: 'error', issue: 'Database write failed.' })
     } else {
+      await checkAndFireThresholdAlerts(
+        row.businessId,
+        operatorOrgId,
+        row.date,
+        row.totalMinutes,
+        previousRowMinutes
+      )
       results.push({ businessId: row.businessId, date: row.date, status: 'processed' })
     }
   }
