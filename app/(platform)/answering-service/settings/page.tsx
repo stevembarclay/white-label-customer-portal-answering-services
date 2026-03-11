@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
 import { ApiKeyManager } from '@/components/operator/ApiKeyManager'
+import { signOutAction } from '@/lib/auth/actions'
 import { getBusinessContext } from '@/lib/auth/server'
 import { createClient } from '@/lib/supabase/server'
 
@@ -49,6 +50,17 @@ export default async function SettingsPage() {
           onRevokeKey={revokeBusinessApiKeyAction}
           isAdmin={true}
         />
+      </section>
+
+      <section className="border-t border-slate-100 pt-6">
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            Sign out
+          </button>
+        </form>
       </section>
     </div>
   )

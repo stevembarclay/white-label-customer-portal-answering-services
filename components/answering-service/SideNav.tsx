@@ -11,6 +11,7 @@ import {
 import { cardVariants } from '@/lib/design/card-system'
 import { navStyles } from '@/lib/design/typography-system'
 import { cn } from '@/lib/utils/cn'
+import { signOutAction } from '@/lib/auth/actions'
 
 interface SideNavProps {
   hasUnreadMessages: boolean
@@ -64,6 +65,14 @@ export function SideNav({ hasUnreadMessages, brandName }: SideNavProps) {
             </Link>
           )
         })}
+        <form action={signOutAction} className="mt-2 border-t border-slate-100 pt-2">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
+          >
+            Sign out
+          </button>
+        </form>
       </div>
     </nav>
   )

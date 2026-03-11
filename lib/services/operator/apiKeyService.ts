@@ -1,5 +1,6 @@
 import { generateRawApiKey, hashApiKey } from '@/lib/api/bearerAuth'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import type { ApiKey } from '@/types/operator'
 
 interface CreateKeyInput {
@@ -37,7 +38,8 @@ export async function createApiKey(input: CreateKeyInput): Promise<CreateKeyResu
 
   const rawKey = generateRawApiKey()
   const keyHash = hashApiKey(rawKey)
-  const supabase = await createClient()
+  // api_keys has no INSERT RLS policy — service role required for writes
+  const supabase = createServiceRoleClient()
 
   const { data, error } = await supabase
     .from('api_keys')
@@ -62,7 +64,8 @@ export async function createApiKey(input: CreateKeyInput): Promise<CreateKeyResu
 }
 
 export async function revokeApiKey(keyId: string): Promise<void> {
-  const supabase = await createClient()
+  // api_keys has no UPDATE RLS policy — service role required for writes
+  const supabase = createServiceRoleClient()
   const { error } = await supabase
     .from('api_keys')
     .update({ revoked_at: new Date().toISOString() })

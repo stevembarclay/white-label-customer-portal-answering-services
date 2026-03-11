@@ -38,10 +38,17 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Authenticated user hitting a login page → send to portal
+  // Authenticated user hitting a login page → send to the right portal
   if (user && pathname.startsWith('/login')) {
+    const { data: opMembership } = await supabase
+      .from('operator_users')
+      .select('operator_org_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
     const portalUrl = request.nextUrl.clone()
-    portalUrl.pathname = '/answering-service'
+    portalUrl.pathname = opMembership ? '/operator/clients' : '/answering-service'
     return NextResponse.redirect(portalUrl)
   }
 

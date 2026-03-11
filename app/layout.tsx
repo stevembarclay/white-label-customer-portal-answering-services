@@ -5,6 +5,11 @@ import './globals.css'
 export const metadata: Metadata = {
   title: portalConfig.name,
   description: 'Answering service customer portal — messages, billing, and account management.',
+  icons: {
+    icon: '/icon-192.png',
+    shortcut: '/icon-192.png',
+    apple: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
