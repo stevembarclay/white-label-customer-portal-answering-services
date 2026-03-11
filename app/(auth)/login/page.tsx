@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="mb-8 text-center">
         <div
           className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold text-white"
-          style={{ backgroundColor: 'var(--portal-brand-color, #3b82f6)' }}
+          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
         >
           {portalConfig.name.slice(0, 2).toUpperCase()}
         </div>

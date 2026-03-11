@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
           type="submit"
           disabled={isPending}
           className={`${touchTarget} ${hoverTransitions.button} ${focusStyles.primary} w-full rounded-lg px-4 py-3 font-semibold text-white disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-60`}
-          style={{ backgroundColor: 'var(--portal-brand-color, #3b82f6)' }}
+          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
         >
           {isPending ? 'Updating...' : 'Update password'}
         </button>

@@ -32,7 +32,7 @@ export function SideNav({ hasUnreadMessages, brandName }: SideNavProps) {
       <div className={`${cardVariants.static} p-5`}>
         <div
           className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-semibold text-white"
-          style={{ backgroundColor: 'var(--portal-brand-color, #3b82f6)' }}
+          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
         >
           {brandName.slice(0, 2).toUpperCase()}
         </div>
@@ -52,7 +52,7 @@ export function SideNav({ hasUnreadMessages, brandName }: SideNavProps) {
                 'relative flex items-center gap-3 rounded-xl px-3 py-3 text-slate-700 transition-colors hover:bg-slate-50',
                 isActive ? navStyles.link.active : navStyles.link.inactive
               )}
-              style={isActive ? { color: 'var(--portal-brand-color, #3b82f6)' } : undefined}
+              style={isActive ? { color: 'var(--portal-brand-color, #334155)' } : undefined}
             >
               <span className="relative">
                 <Icon size={20} weight={isActive ? 'fill' : 'regular'} />

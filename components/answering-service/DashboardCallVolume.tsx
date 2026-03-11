@@ -33,7 +33,7 @@ export function DashboardCallVolume({
           <p className={headingStyles.h4.base}>This week</p>
         </div>
         <div className="pt-2">
-          <Sparkline data={callsByDay} width={96} height={32} color="var(--portal-brand-color, #3b82f6)" />
+          <Sparkline data={callsByDay} width={96} height={32} color="var(--portal-brand-color, #334155)" />
         </div>
       </div>
     </section>

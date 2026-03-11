@@ -46,7 +46,7 @@ export function BottomNav({ hasUnreadMessages }: BottomNavProps) {
                 'relative flex flex-col items-center justify-center gap-1 px-2 py-3 text-center',
                 isActive ? navStyles.link.active : navStyles.link.inactive
               )}
-              style={isActive ? { color: 'var(--portal-brand-color, #3b82f6)' } : undefined}
+              style={isActive ? { color: 'var(--portal-brand-color, #334155)' } : undefined}
             >
               <span className="relative">
                 <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
