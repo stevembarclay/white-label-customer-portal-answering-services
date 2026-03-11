@@ -78,8 +78,8 @@ export const focusStyles = {
   // Input focus
   input: cn(
     'focus-visible:outline-none',
-    'focus-visible:ring-2 focus-visible:ring-primary',
-    'focus-visible:border-primary',
+    'focus-visible:ring-2 focus-visible:ring-slate-400',
+    'focus-visible:border-slate-400',
   ),
 
   // Secondary focus (ghost buttons, links)
