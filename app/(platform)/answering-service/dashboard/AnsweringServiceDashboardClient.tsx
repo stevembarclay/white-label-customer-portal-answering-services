@@ -90,6 +90,8 @@ export default function AnsweringServiceDashboardClient() {
               callCount={summary.currentMonthCallCount}
               daysRemaining={summary.daysRemainingInPeriod}
             />
+            {/* TODO(Task 11): Add <BillingUsageBar> here once GET /api/v1/billing/estimate returns usagePeriods.
+                The meter reads estimate.callCount / bucket.includedMinutes to compute percent. */}
             <DashboardCallVolume
               callsThisWeek={summary.callsThisWeek}
               callsLastWeek={summary.callsLastWeek}
