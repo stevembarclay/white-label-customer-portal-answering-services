@@ -19,6 +19,9 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 
 const DEMO_EMAIL = 'demo@example.com'
 const DEMO_PASSWORD = 'demo-password-2026'
+const OPERATOR_EMAIL = 'operator@example.com'
+const OPERATOR_PASSWORD = 'operator-password-2026'
+const OPERATOR_ORG_NAME = 'Answer First'
 const BUSINESS_NAME = 'Riverside Law Group'
 const BUSINESS_CREATED_AT = '2025-12-01T09:00:00Z'
 const LAST_LOGIN_AT = '2026-03-09T23:59:59Z'
@@ -468,6 +471,63 @@ async function insertMarchCalls(businessId: string): Promise<void> {
   if (error) throw new Error(`Failed to insert March calls: ${error.message}`)
 }
 
+async function ensureOperatorOrg(): Promise<string> {
+  const { data: existing } = await supabase
+    .from('operator_orgs')
+    .select('id')
+    .eq('slug', 'answer-first')
+    .maybeSingle()
+
+  if (existing) return existing.id as string
+
+  const { data, error } = await supabase
+    .from('operator_orgs')
+    .insert({ name: OPERATOR_ORG_NAME, slug: 'answer-first', plan: 'pro', status: 'active' })
+    .select('id')
+    .single()
+
+  if (error || !data) throw new Error(`Failed to create operator org: ${error?.message ?? 'Unknown error'}`)
+  return data.id as string
+}
+
+async function ensureOperatorUser(operatorOrgId: string, businessId: string): Promise<void> {
+  const { data: listData, error: listError } = await supabase.auth.admin.listUsers()
+  if (listError) throw new Error(`Failed to list users: ${listError.message}`)
+
+  let userId: string
+  const existing = listData.users.find((u) => u.email === OPERATOR_EMAIL)
+
+  if (existing) {
+    await supabase.auth.admin.updateUserById(existing.id, {
+      password: OPERATOR_PASSWORD,
+      email_confirm: true,
+    })
+    userId = existing.id
+  } else {
+    const { data: created, error: createError } = await supabase.auth.admin.createUser({
+      email: OPERATOR_EMAIL,
+      password: OPERATOR_PASSWORD,
+      email_confirm: true,
+    })
+    if (createError || !created.user) {
+      throw new Error(`Failed to create operator user: ${createError?.message ?? 'Unknown error'}`)
+    }
+    userId = created.user.id
+  }
+
+  // Upsert operator_users row
+  const { error: opError } = await supabase
+    .from('operator_users')
+    .upsert({ operator_org_id: operatorOrgId, user_id: userId, role: 'admin' }, { onConflict: 'user_id' })
+  if (opError) throw new Error(`Failed to upsert operator_users: ${opError.message}`)
+
+  // Upsert users_businesses row — required to break the /login ↔ /answering-service middleware loop
+  const { error: ubError } = await supabase
+    .from('users_businesses')
+    .upsert({ user_id: userId, business_id: businessId, role: 'viewer' }, { onConflict: 'user_id,business_id' })
+  if (ubError) throw new Error(`Failed to upsert users_businesses for operator: ${ubError.message}`)
+}
+
 async function main() {
   console.log('Seeding Riverside Law Group demo...')
   const userId = await ensureDemoUser()
@@ -480,9 +540,20 @@ async function main() {
   await insertBillingPeriods(businessId)
   await insertMarchCalls(businessId)
 
+  console.log('Seeding operator org and user...')
+  const operatorOrgId = await ensureOperatorOrg()
+  await ensureOperatorUser(operatorOrgId, businessId)
+
+  // Link Riverside Law Group to the operator org
+  const { error: linkError } = await supabase
+    .from('businesses')
+    .update({ operator_org_id: operatorOrgId })
+    .eq('id', businessId)
+  if (linkError) throw new Error(`Failed to link business to operator org: ${linkError.message}`)
+
   console.log('Seed complete.')
-  console.log(`Email: ${DEMO_EMAIL}`)
-  console.log(`Password: ${DEMO_PASSWORD}`)
+  console.log(`Client:   ${DEMO_EMAIL} / ${DEMO_PASSWORD}`)
+  console.log(`Operator: ${OPERATOR_EMAIL} / ${OPERATOR_PASSWORD}`)
   console.log(`Business: ${BUSINESS_NAME}`)
 }
 
