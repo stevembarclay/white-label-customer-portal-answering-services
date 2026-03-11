@@ -207,6 +207,12 @@ export async function ingestRows(
         processed_at: null,
       }, { onConflict: 'business_id,period_date' })
 
+      await fireWebhookEvent(operatorOrgId, 'usage.upload_failed', {
+        businessId: row.businessId,
+        date: row.date,
+        issue: validation.issue,
+      }).catch((err) => logger.error('Failed to fire usage upload failure webhook', { err }))
+
       results.push({ businessId: row.businessId, date: row.date, status: 'error', issue: validation.issue })
       continue
     }
@@ -237,6 +243,13 @@ export async function ingestRows(
     if (error) {
       results.push({ businessId: row.businessId, date: row.date, status: 'error', issue: 'Database write failed.' })
     } else {
+      await fireWebhookEvent(operatorOrgId, 'usage.upload_processed', {
+        businessId: row.businessId,
+        date: row.date,
+        totalCalls: row.totalCalls,
+        totalMinutes: row.totalMinutes,
+      }).catch((err) => logger.error('Failed to fire usage upload processed webhook', { err }))
+
       await checkAndFireThresholdAlerts(
         row.businessId,
         operatorOrgId,
