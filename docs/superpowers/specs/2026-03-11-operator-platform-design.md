@@ -192,9 +192,9 @@ Operators define plans once ("Standard Plan", "Medical Premium") and apply on cl
 
 ### Auth
 
-New server helper `getOperatorContext()` in `lib/auth/server.ts` — analogous to `getBusinessContext()`. Returns `{ operatorOrgId, userId, role }` or throws. All `/operator/` routes call `checkOperatorAccessOrThrow()` middleware.
+New server helper `getOperatorContext()` in `lib/auth/server.ts` — follows the same null-returning pattern as `getBusinessContext()`. Returns `{ operatorOrgId, userId, role } | null` (never throws). `checkOperatorAccessOrThrow()` wraps it: calls `getOperatorContext()`, throws a 401/403 if null or if the session user has no `operator_users` row. All `/operator/` routes call `checkOperatorAccessOrThrow()` at the top of the handler.
 
-Operator users log in via the same Supabase Auth flow. The middleware differentiates by checking `operator_users` for the current `auth.uid()`.
+Operator users log in via the same Supabase Auth flow. `getOperatorContext()` differentiates by checking `operator_users` for the current `auth.uid()`; a user with no row there gets null.
 
 **Role permissions:**
 | Action | admin | viewer |
@@ -234,7 +234,7 @@ Filter bar: search, "All / At risk / Inactive" segmented control, sort dropdown.
 **Health score formula (0–100):**
 | Component | Max pts | Condition | Data source |
 |-----------|---------|-----------|-------------|
-| Login recency | 40 | 40 → within 7d; 25 → 8–14d; 10 → 15–30d; 0 → >30d | `users_businesses.last_login_at` |
+| Login recency | 40 | 40 → within 7d; 25 → 8–14d; 10 → 15–30d; 0 → >30d | `MAX(users_businesses.last_login_at)` across all users on the business — "most recent login by any user." Same aggregation used for the "Last login" column and the "Inactive" segment filter. |
 | Unresolved high-priority | 30 | 30 → none; 15 → 1–2; 0 → 3+ | `call_logs` where `priority='high'` and `portal_status NOT IN ('resolved','read')` |
 | High-priority reviewed within 7d | 20 | % of high-priority calls in last 30d where a `status_changed` action exists in `message_actions` with `at <= call.timestamp + 7d`. The action timestamp (`at`) is authoritative — not `portal_status` on the row. 20 → ≥80%; 10 → 50–79%; 0 → <50% | `call_logs` + `message_actions` |
 | Onboarding complete | 10 | 10 → wizard `status='completed'`; 0 → incomplete | `answering_service_wizard_sessions` |
@@ -348,7 +348,7 @@ The dashboard and billing pages read `usage_periods` (status='processed') for th
 3. **Operator admin shell** — layout, nav, route stubs
 4. **Client list** — table view with health score computation
 5. **Client detail** — four-tab layout, Overview + Settings tabs first
-6. **`billingEngine.ts` update** — swap `call_logs` input for `usage_periods`
+6. **`billingEngine.ts` update** — swap `call_logs` input for `usage_periods`. Note: existing exports are `calculateEstimate()` and `calculateBilling()` — rename or alias to `computeEstimate()` per new signature and update all callers in the same pass.
 7. **Billing ingest API** — `POST /api/v1/usage`, CSV parser, processor
 8. **Billing ingest UI** — upload panel + history table in `/operator/usage`
 9. **Billing meter on client portal** — usage bar widget on dashboard
