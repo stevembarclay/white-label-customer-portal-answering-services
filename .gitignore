@@ -38,3 +38,16 @@ tsconfig.tsbuildinfo
 playwright-report/
 test-results/
 coverage/
+
+# Internal tooling (not for public repo)
+.claude/
+.agents/
+.cursor/
+.superpowers/
+.playwright-mcp/
+CLAUDE.md
+AGENTS.md
+docs/handoffs/
+docs/screenshots/
+docs/templates/
+scripts/screenshot-audit.ts
