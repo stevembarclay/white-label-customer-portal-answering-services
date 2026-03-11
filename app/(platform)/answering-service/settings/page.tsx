@@ -46,7 +46,7 @@ export default async function SettingsPage() {
         </div>
         <ApiKeyManager
           keys={keys}
-          onCreateKey={async (label) => createBusinessApiKeyAction(label)}
+          onCreateKey={createBusinessApiKeyAction}
           onRevokeKey={revokeBusinessApiKeyAction}
           isAdmin={true}
         />

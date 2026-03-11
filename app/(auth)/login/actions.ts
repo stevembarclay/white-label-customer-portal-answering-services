@@ -17,13 +17,19 @@ export async function signInWithPassword(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (error) {
+  if (error || !data.user) {
     redirect(`/login?error=${encodeURIComponent('Invalid email or password')}`)
   }
 
-  redirect(next)
+  const { data: operatorRow } = await supabase
+    .from('operator_users')
+    .select('operator_org_id')
+    .eq('user_id', data.user.id)
+    .maybeSingle()
+
+  redirect(operatorRow ? '/operator/clients' : next)
 }
 
 export async function sendMagicLink(formData: FormData) {
