@@ -9,6 +9,9 @@ import {
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabase),
 }))
+jest.mock('@/lib/supabase/service', () => ({
+  createServiceRoleClient: jest.fn(() => mockSupabase),
+}))
 
 const mockInsert = jest.fn()
 const mockSelect = jest.fn()

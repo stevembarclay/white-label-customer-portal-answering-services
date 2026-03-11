@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import type { BillingRuleType } from '@/types/answeringService'
 
 /** A billing rule as stored inside a template (no businessId or database id yet). */
@@ -59,7 +60,7 @@ export async function createTemplate(
   operatorOrgId: string,
   input: BillingTemplateInput
 ): Promise<BillingTemplate> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient() // INSERT requires service role — no RLS INSERT policy for operators
   const { data, error } = await supabase
     .from('billing_rule_templates')
     .insert({ operator_org_id: operatorOrgId, name: input.name, rules: input.rules })
@@ -71,7 +72,7 @@ export async function createTemplate(
 }
 
 export async function deleteTemplate(operatorOrgId: string, templateId: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient() // DELETE requires service role — no RLS DELETE policy for operators
   const { error } = await supabase
     .from('billing_rule_templates')
     .delete()
@@ -115,7 +116,9 @@ export async function applyTemplateToClient(
 
   if (rules.length === 0) return 0
 
-  const { error: insertError } = await supabase.from('billing_rules').insert(rules)
+  // INSERT into billing_rules requires service role — no RLS INSERT policy for operators
+  const serviceSupabase = createServiceRoleClient()
+  const { error: insertError } = await serviceSupabase.from('billing_rules').insert(rules)
   if (insertError) throw new Error('Failed to apply template rules to client.')
 
   return rules.length
