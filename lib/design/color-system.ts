@@ -5,11 +5,10 @@
  *
  * Semantic status palette with gradient backgrounds and multi-layer shadow system.
  * The status colors (emerald/amber/rose/blue) are intentionally Tailwind-based and
- * universal — only replace the brand-specific values in warmPalette and marketingGradients.
+ * universal — only replace the brand-specific values in warmPalette.
  */
 
 import { cn } from '@/lib/utils/cn'
-import { brandTokens } from './brand-tokens'
 
 export const statusColors = {
   success: {
@@ -155,10 +154,11 @@ export const shadowStyles = {
  */
 export const buttonVariants = {
   primary: cn(
-    'premium-button-primary',  // From globals.css (gradient + inset highlight)
-    'text-white font-semibold',
+    'bg-primary text-primary-foreground',
+    'hover:opacity-90',
     'hover:scale-[1.02]',
     'active:scale-[0.98]',
+    'transition-all duration-200 ease-out',
   ),
 
   secondary: cn(
@@ -194,77 +194,22 @@ export const buttonVariants = {
 } as const
 
 /**
- * Marketing page gradients — used for feature cards, navigation cards, and icon containers.
- * TODO: replace RGB values with your brand's primaryMid and accentWarm RGB equivalents.
- */
-export const marketingGradients = {
-  cards: {
-    // TODO: replace with your secondary brand color RGB values
-    primaryMid: {
-      background: 'linear-gradient(135deg, rgba(26, 77, 46, 0.06), rgba(45, 122, 71, 0.04))',
-      border: '1px solid rgba(26, 77, 46, 0.15)',
-    },
-    // TODO: replace with your warm accent color RGB values
-    accentWarm: {
-      background: 'linear-gradient(135deg, rgba(212, 184, 150, 0.06), rgba(243, 229, 208, 0.04))',
-      border: '1px solid rgba(212, 184, 150, 0.12)',
-    },
-  },
-  iconContainers: {
-    primaryMid: {
-      background: 'linear-gradient(135deg, rgba(26, 77, 46, 0.1), rgba(45, 122, 71, 0.08))',
-      border: '1px solid rgba(26, 77, 46, 0.2)',
-    },
-    accentWarm: {
-      background: 'linear-gradient(135deg, rgba(212, 184, 150, 0.1), rgba(243, 229, 208, 0.08))',
-      border: '1px solid rgba(212, 184, 150, 0.2)',
-    },
-  },
-  navigation: {
-    primaryMid: {
-      hover: 'radial-gradient(circle at 80% 20%, rgba(26, 77, 46, 0.08) 0%, transparent 60%)',
-      iconBg: {
-        background: 'linear-gradient(135deg, rgba(26, 77, 46, 0.1) 0%, rgba(26, 77, 46, 0.05) 100%)',
-        border: '1px solid rgba(26, 77, 46, 0.2)',
-      },
-    },
-    accentWarm: {
-      hover: 'radial-gradient(circle at 80% 20%, rgba(212, 184, 150, 0.08) 0%, transparent 60%)',
-      iconBg: {
-        background: 'linear-gradient(135deg, rgba(212, 184, 150, 0.1) 0%, rgba(212, 184, 150, 0.05) 100%)',
-        border: '1px solid rgba(212, 184, 150, 0.2)',
-      },
-    },
-    slate: {
-      hover: 'radial-gradient(circle at 80% 20%, rgba(15, 23, 42, 0.06) 0%, transparent 60%)',
-      iconBg: {
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.03) 100%)',
-        border: '1px solid rgba(15, 23, 42, 0.15)',
-      },
-    },
-  },
-} as const
-
-/**
  * App background palette — for components rendered on the app background color.
  * Card borders, separators, and text on the app bg use these tokens.
- * DO NOT use border-slate-200 on the warm app bg — it reads too cool.
  */
 export const warmPalette = {
-  /** Card border on app bg — use instead of border-slate-200 */
-  border: `border-[${brandTokens.borderApp}]`,
+  /** Card border on app bg */
+  border: 'border-slate-200',
   /** Inline borderColor value for style={{ borderColor }} contexts */
-  borderColor: brandTokens.borderApp,
+  borderColor: '#e2e8f0',
   /**
    * Page-level separator color (PageHeader bottom border).
-   * Darker than borderApp to achieve sufficient contrast on the app background.
-   * TODO: adjust to match your app background color — verify contrast is ~2.4:1.
    */
-  separatorColor: '#a89b8e',
-  /** Section separator (PageHeader bottom border, section dividers) */
-  separator: `border-b pb-6 mb-6 border-[${brandTokens.borderApp}]`,
+  separatorColor: '#cbd5e1',
+  /** Section separator */
+  separator: 'border-b pb-6 mb-6 border-slate-200',
   /** Primary text on app bg (page titles) */
-  textClass: 'text-stone-900',
+  textClass: 'text-slate-900',
   /** Secondary text on app bg (subtitles) */
-  subtextClass: 'text-stone-500',
+  subtextClass: 'text-slate-500',
 } as const
