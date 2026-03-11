@@ -113,6 +113,8 @@ UNIQUE (business_id, period_date)
 
 RLS: businesses see their own `status='processed'` rows. Operators see all rows for their org including pending/error.
 
+**⚠ One-way door — denormalized `operator_org_id`:** `usage_periods` stores `operator_org_id` directly (rather than deriving it via `business_id → businesses.operator_org_id`) as an intentional performance trade-off: the operator dashboard aggregation query avoids a join on the hot path. The consequence is that if a business is ever reassigned to a different operator org (permitted by `businesses.operator_org_id SET NULL`), all existing `usage_periods` rows for that business will have a stale `operator_org_id`. Any business reassignment must include a migration to update `usage_periods.operator_org_id` in the same transaction.
+
 ---
 
 ### `20260311100200` — API keys
@@ -155,9 +157,11 @@ Initial webhook topics:
 - `call.created` — new call log ingested
 - `call.priority_changed` — priority updated
 - `call.status_changed` — portal status changed
-- `billing.threshold_75` / `.threshold_90` / `.threshold_100`
+- `billing.threshold_75` / `.threshold_90` / `.threshold_100` — **bucket-type plans only.** Threshold is calculated as `(total_minutes_used / bucket_rule.included_minutes) * 100`. If a business has no active `bucket`-type billing rule, these webhooks never fire. If a business has multiple bucket rules, each is evaluated independently and thresholds fire per-rule.
 - `usage.upload_processed` — CSV processed successfully
 - `usage.upload_failed` — CSV processing failed
+
+**Webhook retry policy:** A delivery that receives a non-2xx response or times out (10s) is retried with exponential backoff: 1min → 2min → 4min → 8min → 16min → 32min → 60min cap. Maximum 10 attempts per delivery. After 10 failed attempts the delivery is marked dead (`next_retry_at=NULL`, `delivered_at=NULL`). When `consecutive_failure_count` reaches 5, `status` transitions to `'failing'` and the operator is notified by email. The operator must manually reactivate the subscription after fixing their endpoint.
 
 ---
 
@@ -182,6 +186,20 @@ New server helper `getOperatorContext()` in `lib/auth/server.ts` — analogous t
 
 Operator users log in via the same Supabase Auth flow. The middleware differentiates by checking `operator_users` for the current `auth.uid()`.
 
+**Role permissions:**
+| Action | admin | viewer |
+|--------|-------|--------|
+| View client list and detail | ✓ | ✓ |
+| View billing history and usage periods | ✓ | ✓ |
+| View calls tab on client detail | ✓ | ✓ |
+| Upload usage CSV | ✓ | — |
+| Apply billing rule template to client | ✓ | — |
+| Manage API keys (create/revoke) | ✓ | — |
+| Manage webhook subscriptions | ✓ | — |
+| Override health score | ✓ | — |
+| Edit operator settings / white-label config | ✓ | — |
+| Manage `operator_users` (invite/remove) | ✓ | — |
+
 ### Routes
 
 ```
@@ -200,14 +218,16 @@ Table view. Columns: **Client name / domain**, **Health score** (colored dot + n
 Filter bar: search, "All / At risk / Inactive" segmented control, sort dropdown.
 
 **Health score formula (0–100):**
-| Component | Max pts | Condition |
-|-----------|---------|-----------|
-| Login recency | 40 | 40 → logged in within 7d; 25 → 8–14d; 10 → 15–30d; 0 → >30d |
-| Unresolved high-priority | 30 | 30 → none; 15 → 1–2; 0 → 3+ |
-| Onboarding complete | 10 | 10 → wizard complete; 0 → incomplete |
-| Call rating average | 20 | Scaled from avg star rating (last 30 calls) |
+| Component | Max pts | Condition | Data source |
+|-----------|---------|-----------|-------------|
+| Login recency | 40 | 40 → within 7d; 25 → 8–14d; 10 → 15–30d; 0 → >30d | `users_businesses.last_login_at` |
+| Unresolved high-priority | 30 | 30 → none; 15 → 1–2; 0 → 3+ | `call_logs` where `priority='high'` and `portal_status NOT IN ('resolved','read')` |
+| High-priority reviewed within 7d | 20 | % of high-priority calls in last 30d with `portal_status != 'new'` within 7d of arrival. 20 → ≥80%; 10 → 50–79%; 0 → <50% | `call_logs` + `message_actions` |
+| Onboarding complete | 10 | 10 → wizard `status='completed'`; 0 → incomplete | `answering_service_wizard_sessions` |
 
 Note: billing usage is NOT a health score component — high usage indicates a healthy active client. It surfaces separately as its own signal in the billing column.
+
+Note: `CallRating.tsx` exists in the codebase but does not persist ratings to a DB column in v1. A call rating component is deferred to a future health score revision once ratings data exists.
 
 If `health_score_override` is set, that value is shown with a pin icon; the formula is not evaluated.
 
@@ -248,7 +268,7 @@ Two panels:
 
 1. `POST /api/v1/usage` receives CSV (multipart) or JSON array
 2. Validates each row: business_id exists and belongs to operator org, date format, numeric values, call_type slugs (warn on unknown, don't reject)
-3. Writes `usage_periods` rows with `status='pending'`
+3. **Upserts** `usage_periods` rows using `ON CONFLICT (business_id, period_date) DO UPDATE` — all data fields overwritten, `status` reset to `'pending'`, `processed_at` cleared. Re-uploading a day's data silently replaces the previous data. No 409 conflict.
 4. Async processor (Supabase Edge Function or background job) aggregates and sets `status='processed'`
 5. On error: `status='error'`, `error_detail` populated
 6. On success: fires `usage.upload_processed` webhook; billing meter on client portal updates on next load
@@ -262,6 +282,8 @@ computeEstimate(usagePeriods: UsagePeriod[], billingRules: BillingRule[]): Billi
 
 The dashboard and billing pages read `usage_periods` (status='processed') for the current billing period and pass them to the engine.
 
+**Current period definition:** The billing meter uses the calendar-month boundary from the existing `getCurrentPeriod()` helper (UTC month start/end). Operators with non-calendar billing cycles will see an approximation until per-business billing cycle configuration ships. `billing_periods` (closed/paid invoices) is **not affected by this feature** — it remains the source of truth for `GET /api/v1/billing/invoices` and `billingService.getPastInvoices()`. `usage_periods` feeds the running estimate only.
+
 ---
 
 ## API Surface
@@ -274,7 +296,7 @@ The dashboard and billing pages read `usage_periods` (status='processed') for th
 
 | Method | Path | Scope | Notes |
 |--------|------|-------|-------|
-| `GET` | `/api/v1/calls` | `calls:read` | Paginated call log. Business key = own data; operator key = all clients (requires `?business_id=`) |
+| `GET` | `/api/v1/calls` | `calls:read` | Paginated call log. Business key = own data only. Operator key: `?business_id=` is **required** — returns 400 without it. Cross-client bulk reads are not a v1 use case. |
 | `GET` | `/api/v1/calls/:id` | `calls:read` | Single call with message actions |
 | `GET` | `/api/v1/billing/estimate` | `billing:read` | Current period running estimate |
 | `GET` | `/api/v1/billing/invoices` | `billing:read` | Invoice history |
