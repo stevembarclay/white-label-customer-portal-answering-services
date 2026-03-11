@@ -20,9 +20,9 @@ export function WizardProgress({ steps, currentStep }: WizardProgressProps) {
                   className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors',
                     {
-                      'bg-primary border-bronze text-foreground': isCompleted,
-                      'bg-primary border-bronze text-foreground ring-4 ring-bronze/20': isCurrent,
-                      'border-steel text-muted-foreground bg-transparent': isPending,
+                      'bg-slate-600 border-slate-600 text-white': isCompleted,
+                      'bg-slate-600 border-slate-600 text-white ring-4 ring-slate-400/20': isCurrent,
+                      'border-slate-300 text-slate-400 bg-transparent': isPending,
                     }
                   )}
                 >
@@ -34,8 +34,8 @@ export function WizardProgress({ steps, currentStep }: WizardProgressProps) {
                 </div>
                 <span
                   className={cn('mt-2 text-xs text-center max-w-[100px]', {
-                    'text-primary font-medium': isCurrent,
-                    'text-muted-foreground': isPending || isCompleted,
+                    'text-slate-700 font-medium': isCurrent,
+                    'text-slate-400': isPending || isCompleted,
                   })}
                 >
                   {step}
@@ -44,8 +44,8 @@ export function WizardProgress({ steps, currentStep }: WizardProgressProps) {
               {index < steps.length - 1 && (
                 <div
                   className={cn('h-0.5 flex-1 mx-2 transition-colors', {
-                    'bg-primary': isCompleted,
-                    'bg-steel': !isCompleted,
+                    'bg-slate-400': isCompleted,
+                    'bg-slate-200': !isCompleted,
                   })}
                 />
               )}
