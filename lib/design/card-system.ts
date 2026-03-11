@@ -3,7 +3,7 @@
  *
  * Card variants using premium utilities from globals.css.
  * Includes interactive cards, data panels, border hover states.
- * All card borders use warmPalette.border (warm-gray, not cool slate).
+ * All card borders use warmPalette.border (slate-200).
  */
 
 import { cn } from '@/lib/utils/cn'
