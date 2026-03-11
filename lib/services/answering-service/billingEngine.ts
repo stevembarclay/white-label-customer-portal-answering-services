@@ -5,6 +5,7 @@ import type {
   BillingRule,
   CallLog,
 } from '@/types/answeringService'
+import type { UsagePeriod } from '@/types/operator'
 
 function filterByCallType(calls: CallLog[], filter: string[] | undefined): CallLog[] {
   if (!filter || filter.length === 0) {
@@ -134,6 +135,9 @@ export function calculateBilling(
   return lineItems
 }
 
+/**
+ * @deprecated Use computeEstimate() with usage_periods instead.
+ */
 export function calculateEstimate(
   businessId: string,
   rules: BillingRule[],
@@ -169,6 +173,120 @@ export function calculateInvoice(
     periodEnd: period.end.toISOString(),
     totalCents: lineItems.reduce((sum, item) => sum + item.subtotalCents, 0),
     callCount: calls.length,
+    lineItems,
+  }
+}
+
+interface AggregatedUsage {
+  totalCalls: number
+  totalMinutes: number
+  byType: Record<string, { calls: number; minutes: number }>
+}
+
+function aggregateUsagePeriods(periods: UsagePeriod[]): AggregatedUsage {
+  const byType: Record<string, { calls: number; minutes: number }> = {}
+  let totalCalls = 0
+  let totalMinutes = 0
+
+  for (const period of periods) {
+    totalCalls += period.totalCalls
+    totalMinutes += Number(period.totalMinutes)
+    for (const [type, data] of Object.entries(period.callTypeBreakdown)) {
+      if (!byType[type]) byType[type] = { calls: 0, minutes: 0 }
+      byType[type].calls += data.calls
+      byType[type].minutes += data.minutes
+    }
+  }
+
+  return { totalCalls, totalMinutes, byType }
+}
+
+function applyPerCallFromUsage(rule: BillingRule, usage: AggregatedUsage): BillingLineItem {
+  const count = rule.callTypeFilter
+    ? rule.callTypeFilter.reduce((sum, t) => sum + (usage.byType[t]?.calls ?? 0), 0)
+    : usage.totalCalls
+
+  return {
+    ruleId: rule.id,
+    ruleName: rule.name,
+    unitDescription: `${count} call${count === 1 ? '' : 's'} × ${formatCurrency(rule.amount)}`,
+    subtotalCents: count * rule.amount,
+  }
+}
+
+function applyPerMinuteFromUsage(rule: BillingRule, usage: AggregatedUsage): BillingLineItem {
+  const minutes = rule.callTypeFilter
+    ? rule.callTypeFilter.reduce((sum, t) => sum + (usage.byType[t]?.minutes ?? 0), 0)
+    : usage.totalMinutes
+  const roundedMinutes = Math.ceil(minutes)
+
+  return {
+    ruleId: rule.id,
+    ruleName: rule.name,
+    unitDescription: `${roundedMinutes} min × ${formatCurrency(rule.amount)}/min`,
+    subtotalCents: roundedMinutes * rule.amount,
+  }
+}
+
+function applyBucketFromUsage(rule: BillingRule, usage: AggregatedUsage): BillingLineItem {
+  const minutes = rule.callTypeFilter
+    ? rule.callTypeFilter.reduce((sum, t) => sum + (usage.byType[t]?.minutes ?? 0), 0)
+    : usage.totalMinutes
+  const roundedMinutes = Math.ceil(minutes)
+  const includedMinutes = rule.includedMinutes ?? 0
+  const overageRate = rule.overageRate ?? 0
+  const overageMinutes = Math.max(0, roundedMinutes - includedMinutes)
+
+  return {
+    ruleId: rule.id,
+    ruleName: rule.name,
+    unitDescription:
+      overageMinutes === 0
+        ? `${roundedMinutes} of ${includedMinutes} min included (no overage)`
+        : `${includedMinutes} min included + ${overageMinutes} overage × ${formatCurrency(overageRate)}/min`,
+    subtotalCents: overageMinutes * overageRate,
+  }
+}
+
+export function computeEstimate(
+  businessId: string,
+  usagePeriods: UsagePeriod[],
+  billingRules: BillingRule[],
+  period: { start: Date; end: Date },
+  businessCreatedAt: Date
+): BillingEstimate {
+  const usage = aggregateUsagePeriods(usagePeriods)
+  const lineItems: BillingLineItem[] = []
+
+  for (const rule of billingRules.filter((r) => r.active)) {
+    switch (rule.type) {
+      case 'per_call':
+        lineItems.push(applyPerCallFromUsage(rule, usage))
+        break
+      case 'per_minute':
+        lineItems.push(applyPerMinuteFromUsage(rule, usage))
+        break
+      case 'flat_monthly':
+        lineItems.push(applyFlatMonthly(rule))
+        break
+      case 'setup_fee': {
+        const item = applySetupFee(rule, businessCreatedAt, period.start)
+        if (item) lineItems.push(item)
+        break
+      }
+      case 'bucket':
+        lineItems.push(applyBucketFromUsage(rule, usage))
+        break
+    }
+  }
+
+  return {
+    businessId,
+    periodStart: period.start.toISOString(),
+    periodEnd: period.end.toISOString(),
+    asOf: new Date().toISOString(),
+    totalCents: lineItems.reduce((sum, item) => sum + item.subtotalCents, 0),
+    callCount: usage.totalCalls,
     lineItems,
   }
 }

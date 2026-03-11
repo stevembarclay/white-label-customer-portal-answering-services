@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { calculateEstimate } from '@/lib/services/answering-service/billingEngine'
+import { computeEstimate } from '@/lib/services/answering-service/billingEngine'
 import type { BillingEstimate, BillingInvoice, BillingRule, CallLog } from '@/types/answeringService'
+import type { UsagePeriod } from '@/types/operator'
 
 interface BillingRuleRow {
   id: string
@@ -40,6 +41,22 @@ interface BillingPeriodRow {
   call_count: number
   line_items: BillingInvoice['lineItems'] | null
   paid_at: string | null
+  created_at: string
+}
+
+interface UsagePeriodRow {
+  id: string
+  business_id: string
+  operator_org_id: string
+  period_date: string
+  total_calls: number
+  total_minutes: string
+  call_type_breakdown: Record<string, { calls: number; minutes: number }>
+  source: UsagePeriod['source']
+  status: UsagePeriod['status']
+  error_detail: UsagePeriod['errorDetail']
+  raw_file_url: string | null
+  processed_at: string | null
   created_at: string
 }
 
@@ -92,6 +109,24 @@ function mapInvoice(row: BillingPeriodRow): BillingInvoice {
   }
 }
 
+function mapUsagePeriod(row: UsagePeriodRow): UsagePeriod {
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    operatorOrgId: row.operator_org_id,
+    periodDate: row.period_date,
+    totalCalls: row.total_calls,
+    totalMinutes: Number(row.total_minutes),
+    callTypeBreakdown: row.call_type_breakdown ?? {},
+    source: row.source,
+    status: row.status,
+    errorDetail: row.error_detail,
+    rawFileUrl: row.raw_file_url,
+    processedAt: row.processed_at,
+    createdAt: row.created_at,
+  }
+}
+
 function getCurrentPeriod(): { start: Date; end: Date } {
   const now = new Date()
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
@@ -119,21 +154,20 @@ export async function getBillingRules(businessId: string): Promise<BillingRule[]
 export async function getCurrentEstimate(businessId: string): Promise<BillingEstimate> {
   const supabase = await createClient()
   const period = getCurrentPeriod()
-  const [rules, callsResult, businessResult] = await Promise.all([
+  const [rules, usageResult, businessResult] = await Promise.all([
     getBillingRules(businessId),
     supabase
-      .from('call_logs')
-      .select(
-        'id, business_id, timestamp, caller_name, caller_number, callback_number, call_type, direction, duration_seconds, telephony_status, message, priority, portal_status'
-      )
+      .from('usage_periods')
+      .select('id, business_id, operator_org_id, period_date, total_calls, total_minutes, call_type_breakdown, source, status, error_detail, raw_file_url, processed_at, created_at')
       .eq('business_id', businessId)
-      .gte('timestamp', period.start.toISOString())
-      .lte('timestamp', period.end.toISOString()),
+      .eq('status', 'processed')
+      .gte('period_date', period.start.toISOString().slice(0, 10))
+      .lte('period_date', period.end.toISOString().slice(0, 10)),
     supabase.from('businesses').select('created_at').eq('id', businessId).maybeSingle(),
   ])
 
-  if (callsResult.error) {
-    throw new Error('Failed to load calls for the billing estimate.')
+  if (usageResult.error) {
+    throw new Error('Failed to load usage periods for the billing estimate.')
   }
 
   if (businessResult.error) {
@@ -144,10 +178,9 @@ export async function getCurrentEstimate(businessId: string): Promise<BillingEst
   const businessCreatedAt =
     new Date((businessResult.data as { created_at?: string } | null)?.created_at ?? period.start.toISOString())
 
-  // SAFETY: This query selects the exact CallLogRow shape declared above.
-  const calls = ((callsResult.data ?? []) as CallLogRow[]).map(mapCall)
+  const usagePeriods = ((usageResult.data ?? []) as UsagePeriodRow[]).map(mapUsagePeriod)
 
-  return calculateEstimate(businessId, rules, calls, period, businessCreatedAt)
+  return computeEstimate(businessId, usagePeriods, rules, period, businessCreatedAt)
 }
 
 export async function getPastInvoices(businessId: string): Promise<BillingInvoice[]> {
