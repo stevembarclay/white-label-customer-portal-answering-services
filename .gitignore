@@ -51,3 +51,4 @@ docs/handoffs/
 docs/screenshots/
 docs/templates/
 scripts/screenshot-audit.ts
+.vercel
