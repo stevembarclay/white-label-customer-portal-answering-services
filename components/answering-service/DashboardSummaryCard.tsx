@@ -34,7 +34,7 @@ export function DashboardSummaryCard({
     )
   }
   return (
-    <Card className={clickable ? 'cursor-pointer transition-all hover:border-bronze hover:shadow-md group-hover:border-bronze' : ''}>
+    <Card className={clickable ? 'cursor-pointer transition-all hover:border-slate-300 hover:shadow-md group-hover:border-slate-300' : ''}>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
