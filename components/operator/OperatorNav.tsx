@@ -4,6 +4,7 @@ import { signOutAction } from '@/lib/auth/actions'
 const navItems = [
   { href: '/operator/clients', label: 'Clients' },
   { href: '/operator/usage', label: 'Usage' },
+  { href: '/operator/billing-templates', label: 'Rate Cards' },
   { href: '/operator/api-webhooks', label: 'API & Webhooks' },
   { href: '/operator/settings', label: 'Settings' },
 ]
