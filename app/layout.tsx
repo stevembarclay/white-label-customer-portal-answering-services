@@ -22,6 +22,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content={portalConfig.brandColor} />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <style>{`:root { --portal-brand-color: ${portalConfig.brandColor}; }`}</style>
       </head>
       <body>{children}</body>
     </html>

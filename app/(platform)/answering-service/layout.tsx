@@ -21,10 +21,7 @@ export default async function AnsweringServiceLayout({
   const unreadCount = await getUnreadMessageCount(context.businessId)
 
   return (
-    <div
-      className="min-h-screen bg-slate-50"
-      style={{ '--portal-brand-color': portalConfig.brandColor } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 md:px-6">
         <SideNav hasUnreadMessages={unreadCount > 0} brandName={portalConfig.name} />
         <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
