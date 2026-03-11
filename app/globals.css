@@ -5,18 +5,6 @@
   --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 
-  /* Brand Colors — Dark surfaces */
-  --color-gunmetal: #1C1F26;
-  --color-gunmetal-light: #2A2D35;
-  --color-gunmetal-lighter: #3F4248;
-  --color-gunmetal-lightest: #363B47;
-
-  /* Brand Colors — Accent */
-  --color-bronze: #A68A64;
-  --color-bronze-light: #B89B75;
-  --color-bronze-dark: #8a7354;
-  --color-gold: #D4B483;
-  --color-tactical: #2A453B;
 
   /* Brand Colors — UI */
   --color-steel: #94A3B8;
@@ -37,8 +25,8 @@
   --color-card-foreground: #1e293b;
   --color-popover: #ffffff;
   --color-popover-foreground: #1e293b;
-  --color-primary: #A68A64;
-  --color-primary-foreground: #1c1f26;
+  --color-primary: var(--portal-brand-color, #334155);
+  --color-primary-foreground: #ffffff;
   --color-secondary: #f1f5f9;
   --color-secondary-foreground: #1e293b;
   --color-muted: #f1f5f9;
@@ -49,7 +37,7 @@
   --color-destructive-foreground: #ffffff;
   --color-border: #e2e8f0;
   --color-input: #e2e8f0;
-  --color-ring: #D4B483;
+  --color-ring: #94a3b8;
 }
 
 @utility premium-card {
@@ -80,9 +68,9 @@
 
   /* WCAG 2.2: focus rings */
   :focus-visible {
-    outline: 2px solid var(--color-gold);
+    outline: 2px solid var(--color-ring);
     outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(28, 31, 38, 0.8);
+    box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.2);
   }
 
   /* Respect reduced motion */
