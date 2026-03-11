@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS operator_users (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   operator_org_id  UUID        NOT NULL REFERENCES operator_orgs(id) ON DELETE CASCADE,
   user_id          UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role             TEXT        NOT NULL DEFAULT 'admin'
+  role             TEXT        NOT NULL DEFAULT 'viewer'
                                CHECK (role IN ('admin', 'viewer')),
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (operator_org_id, user_id)

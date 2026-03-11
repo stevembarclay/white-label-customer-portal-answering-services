@@ -58,6 +58,10 @@ Previously flat (`users → businesses`). The operator layer is additive — exi
 
 A key issued to a **business** can only read that business's data. A key issued to an **operator org** can read across all their clients and has `usage:write` scope for the ingest endpoint. Exactly one owner is enforced at the DB level.
 
+**`usage:write` enforcement:** The scope check alone is the gate. Business keys must never be issued `usage:write` — this is enforced at key creation time (server rejects a `usage:write` scope on a `business_id`-owned key). The endpoint does not perform a separate is-operator identity check; the scope on the key is authoritative.
+
+**API endpoints are server-side (service role):** All `/api/v1/` routes execute under service role, not the caller's RLS context. Data scoping is enforced in application code by checking the key's owner (`business_id` or `operator_org_id`) against query parameters. The RLS policies on `usage_periods`, `api_keys`, etc. protect direct Supabase client access only, not the API path.
+
 ### AD-4: Webhook secrets are write-only
 
 The HMAC signing secret is stored in `webhook_subscriptions.secret` and never returned by any API response after creation. If lost, the subscription must be deleted and recreated. This is standard practice (Stripe, GitHub) and prevents secret leakage via API enumeration.
@@ -157,11 +161,15 @@ Initial webhook topics:
 - `call.created` — new call log ingested
 - `call.priority_changed` — priority updated
 - `call.status_changed` — portal status changed
-- `billing.threshold_75` / `.threshold_90` / `.threshold_100` — **bucket-type plans only.** Threshold is calculated as `(total_minutes_used / bucket_rule.included_minutes) * 100`. If a business has no active `bucket`-type billing rule, these webhooks never fire. If a business has multiple bucket rules, each is evaluated independently and thresholds fire per-rule.
+- `billing.threshold_75` / `.threshold_90` / `.threshold_100` — **bucket-type plans only.** Threshold is calculated as `(sum(total_minutes) across all status='processed' usage_periods rows for the current calendar month / bucket_rule.included_minutes) * 100`. Each `period_date` row contributes its `total_minutes`; the upsert semantics mean each date is counted once. If a business has no active `bucket`-type billing rule, these webhooks never fire. If a business has multiple bucket rules, each is evaluated independently and thresholds fire per-rule. **Threshold webhooks fire in v1** (alongside the email alert) — "email only in v1" in Open Questions refers to the delivery channel for the operator, not a deferral of threshold detection itself.
 - `usage.upload_processed` — CSV processed successfully
 - `usage.upload_failed` — CSV processing failed
 
-**Webhook retry policy:** A delivery that receives a non-2xx response or times out (10s) is retried with exponential backoff: 1min → 2min → 4min → 8min → 16min → 32min → 60min cap. Maximum 10 attempts per delivery. After 10 failed attempts the delivery is marked dead (`next_retry_at=NULL`, `delivered_at=NULL`). When `consecutive_failure_count` reaches 5, `status` transitions to `'failing'` and the operator is notified by email. The operator must manually reactivate the subscription after fixing their endpoint.
+**Webhook retry policy:** A delivery that receives a non-2xx response or times out (10s) is retried with exponential backoff: 1min → 2min → 4min → 8min → 16min → 32min → 60min cap. Maximum 10 attempts per delivery. After 10 failed attempts the delivery is marked dead (`next_retry_at=NULL`, `delivered_at=NULL`). `consecutive_failure_count` increments on each dead delivery sequence (not each individual attempt). A single successful delivery resets it to 0. When `consecutive_failure_count` reaches 5, `status` transitions to `'failing'`. **Failure notification email** is sent to all `operator_users` with `role='admin'` for that org (queried at send time — not stored on the subscription). The operator must manually set `status='active'` via the admin UI after fixing their endpoint.
+
+**⚠ One-way door — SHA-256 key hashing:** API keys are stored as `SHA-256(raw_key)`. This is secure only if raw keys are cryptographically random with sufficient entropy (minimum 32 random bytes / 256 bits — e.g., `crypto.randomBytes(32).toString('hex')`). Key generation must use this approach; the spec and implementation must be consistent. Migrating to a different hashing scheme later requires invalidating all existing keys. **Do not allow user-chosen or short API keys.**
+
+**⚠ One-way door — one row per `(business_id, period_date)`:** Sub-day granularity (e.g., separate shift uploads) is not possible without a destructive migration. This is a deliberate choice for v1 simplicity.
 
 ---
 
@@ -175,6 +183,8 @@ created_at, updated_at
 ```
 
 Operators define plans once ("Standard Plan", "Medical Premium") and apply on client provisioning. Shape of `rules` must stay compatible with `billing_rules` table schema.
+
+**Template apply behavior:** When an operator applies a template to a business, each object in `rules` is inserted into `billing_rules` with a new `id`, the target `business_id`, and `active=true`. Template rules always include `active: true`; the `active` field is not stripped. Existing billing rules for the business are not touched — the operator is responsible for deactivating conflicting rules if needed.
 
 ---
 
@@ -217,12 +227,16 @@ Table view. Columns: **Client name / domain**, **Health score** (colored dot + n
 
 Filter bar: search, "All / At risk / Inactive" segmented control, sort dropdown.
 
+**Segment definitions:**
+- **At risk:** health score < 50 (formula result or override)
+- **Inactive:** `last_login_at` > 30 days ago, regardless of health score (a client can be inactive but have a moderate score due to other components)
+
 **Health score formula (0–100):**
 | Component | Max pts | Condition | Data source |
 |-----------|---------|-----------|-------------|
 | Login recency | 40 | 40 → within 7d; 25 → 8–14d; 10 → 15–30d; 0 → >30d | `users_businesses.last_login_at` |
 | Unresolved high-priority | 30 | 30 → none; 15 → 1–2; 0 → 3+ | `call_logs` where `priority='high'` and `portal_status NOT IN ('resolved','read')` |
-| High-priority reviewed within 7d | 20 | % of high-priority calls in last 30d with `portal_status != 'new'` within 7d of arrival. 20 → ≥80%; 10 → 50–79%; 0 → <50% | `call_logs` + `message_actions` |
+| High-priority reviewed within 7d | 20 | % of high-priority calls in last 30d where a `status_changed` action exists in `message_actions` with `at <= call.timestamp + 7d`. The action timestamp (`at`) is authoritative — not `portal_status` on the row. 20 → ≥80%; 10 → 50–79%; 0 → <50% | `call_logs` + `message_actions` |
 | Onboarding complete | 10 | 10 → wizard `status='completed'`; 0 → incomplete | `answering_service_wizard_sessions` |
 
 Note: billing usage is NOT a health score component — high usage indicates a healthy active client. It surfaces separately as its own signal in the billing column.
@@ -267,8 +281,8 @@ Two panels:
 ### Processing flow
 
 1. `POST /api/v1/usage` receives CSV (multipart) or JSON array
-2. Validates each row: business_id exists and belongs to operator org, date format, numeric values, call_type slugs (warn on unknown, don't reject)
-3. **Upserts** `usage_periods` rows using `ON CONFLICT (business_id, period_date) DO UPDATE` — all data fields overwritten, `status` reset to `'pending'`, `processed_at` cleared. Re-uploading a day's data silently replaces the previous data. No 409 conflict.
+2. Validates each row: business_id exists and belongs to operator org, date format, numeric values, call_type slugs (warn on unknown, don't reject). Within a single CSV, if the same `(business_id, period_date)` pair appears more than once, the **last row wins** (not an error).
+3. **Upserts** `usage_periods` rows using `ON CONFLICT (business_id, period_date) DO UPDATE` — all data fields overwritten, `status` reset to `'pending'`, `processed_at` cleared. Re-uploading a day's data silently replaces the previous data. No 409 conflict. Each date in a multi-day CSV produces a separate row.
 4. Async processor (Supabase Edge Function or background job) aggregates and sets `status='processed'`
 5. On error: `status='error'`, `error_detail` populated
 6. On success: fires `usage.upload_processed` webhook; billing meter on client portal updates on next load
@@ -297,7 +311,7 @@ The dashboard and billing pages read `usage_periods` (status='processed') for th
 | Method | Path | Scope | Notes |
 |--------|------|-------|-------|
 | `GET` | `/api/v1/calls` | `calls:read` | Paginated call log. Business key = own data only. Operator key: `?business_id=` is **required** — returns 400 without it. Cross-client bulk reads are not a v1 use case. |
-| `GET` | `/api/v1/calls/:id` | `calls:read` | Single call with message actions |
+| `GET` | `/api/v1/calls/:id` | `calls:read` | Single call with message actions. Read-only via API — no status or priority mutation endpoints in v1. This mirrors the operator admin UI constraint. |
 | `GET` | `/api/v1/billing/estimate` | `billing:read` | Current period running estimate |
 | `GET` | `/api/v1/billing/invoices` | `billing:read` | Invoice history |
 | `GET` | `/api/v1/usage` | `billing:read` | Usage periods |
