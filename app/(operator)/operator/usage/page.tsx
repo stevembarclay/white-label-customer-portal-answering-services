@@ -1,3 +1,4 @@
+import { CallUploadPanel } from '@/components/operator/CallUploadPanel'
 import { UsageHistory } from '@/components/operator/UsageHistory'
 import { UsageUploadPanel } from '@/components/operator/UsageUploadPanel'
 import { checkOperatorAccessOrThrow } from '@/lib/auth/server'
@@ -24,6 +25,15 @@ export default async function UsagePage() {
           <UsageUploadPanel />
         ) : (
           <p className="text-sm text-slate-400">Admin role required to upload usage data.</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-base font-semibold">Upload Call Logs</h2>
+        {context.role === 'admin' ? (
+          <CallUploadPanel />
+        ) : (
+          <p className="text-sm text-slate-400">Admin role required to upload call logs.</p>
         )}
       </section>
 
