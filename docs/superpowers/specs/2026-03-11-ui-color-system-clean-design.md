@@ -277,17 +277,23 @@ value ? 'border-slate-400 text-slate-700' : 'border-slate-300 text-muted-foregro
 
 ---
 
-### 11. Update inline CSS var fallbacks in brand-color-consuming components
+### 11. Update inline CSS var fallbacks — all 8 occurrences
 
-The four components that consume `--portal-brand-color` via inline styles all hardcode `#3b82f6` as the CSS variable fallback. After this sprint, the canonical default is `#334155` (slate-700). Update all five occurrences:
+Every place in the codebase that references `var(--portal-brand-color, #3b82f6)` must update the fallback from `#3b82f6` to `#334155`. There are 8 occurrences across 7 files:
 
-- `SideNav.tsx` line 35: `var(--portal-brand-color, #3b82f6)` → `var(--portal-brand-color, #334155)`
-- `SideNav.tsx` line 55: same
-- `BottomNav.tsx` line 49: same
-- `LoginForm.tsx` line 82: same
-- `DashboardCallVolume.tsx` line 36: same
+**Components:**
+- `SideNav.tsx` line 35 (backgroundColor)
+- `SideNav.tsx` line 55 (color)
+- `BottomNav.tsx` line 49 (color)
+- `LoginForm.tsx` line 82 (backgroundColor)
+- `DashboardCallVolume.tsx` line 36 (Sparkline color prop)
 
-In normal operation `--portal-brand-color` is always injected at `:root` by `app/layout.tsx`, so these fallbacks only fire in isolated rendering contexts (tests, Storybook). Keeping them consistent avoids confusing blue flash in those environments.
+**Auth pages:**
+- `app/(auth)/login/page.tsx` line 22 (backgroundColor)
+- `app/(auth)/login/forgot-password/page.tsx` line 77 (backgroundColor)
+- `app/(auth)/login/reset-password/page.tsx` line 81 (backgroundColor)
+
+In normal operation `--portal-brand-color` is always injected at `:root` by `app/layout.tsx`, so these fallbacks only fire in isolated rendering contexts (tests, Storybook, or when `PORTAL_BRAND_COLOR` env var is unset). Without this fix, the default-state login flow renders Tailwind blue while the platform renders dark slate — a visually broken default.
 
 ---
 
