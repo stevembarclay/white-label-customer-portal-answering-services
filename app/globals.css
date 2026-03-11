@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* Brand Colors — Dark surfaces */
+  --color-gunmetal: #1C1F26;
+  --color-gunmetal-light: #2A2D35;
+  --color-gunmetal-lighter: #3F4248;
+  --color-gunmetal-lightest: #363B47;
+
+  /* Brand Colors — Accent */
+  --color-bronze: #A68A64;
+  --color-bronze-light: #B89B75;
+  --color-bronze-dark: #8a7354;
+  --color-gold: #D4B483;
+  --color-tactical: #2A453B;
+
+  /* Brand Colors — UI */
+  --color-steel: #94A3B8;
+  --color-steel-dark: #64748B;
+  --color-steel-bright: #B8C5D6;
+  --color-steel-muted: #6B7A8C;
+
+  /* Status */
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Semantic (shadcn/ui compatibility) — light-mode defaults */
+  --color-background: #f8fafc;
+  --color-foreground: #1e293b;
+  --color-card: #ffffff;
+  --color-card-foreground: #1e293b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1e293b;
+  --color-primary: #A68A64;
+  --color-primary-foreground: #1c1f26;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #1e293b;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #1e293b;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #D4B483;
+}
+
+@utility premium-card {
+  background: white;
+  border-radius: 24px;
+}
+
+@utility shadow-institutional {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+}
+
+@utility shadow-institutional-hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* WCAG 2.2: focus rings */
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(28, 31, 38, 0.8);
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
