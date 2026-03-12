@@ -11,6 +11,14 @@ export async function PUT(
 
   const { id } = await params
   const body = await request.json()
+
+  if (body.name !== undefined && (!body.name?.trim() || body.name.length > 100)) {
+    return NextResponse.json({ error: 'name must be ≤ 100 characters' }, { status: 400 })
+  }
+  if (body.phone !== undefined && (!body.phone?.trim() || body.phone.length > 50)) {
+    return NextResponse.json({ error: 'phone must be ≤ 50 characters' }, { status: 400 })
+  }
+
   await updateContact(id, context.businessId, body)
 
   // Re-fetch the updated contact so the client can update its local state

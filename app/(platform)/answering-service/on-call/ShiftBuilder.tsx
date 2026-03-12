@@ -125,11 +125,12 @@ export function ShiftBuilder({
     if (!shift) return
     setDeleting(true)
     try {
-      await fetch(`/api/v1/internal/on-call/shifts/${shift.id}`, {
+      const res = await fetch(`/api/v1/internal/on-call/shifts/${shift.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId }),
       })
+      if (!res.ok) throw new Error('Failed to remove shift.')
       onDeleted(shift.id)
       toast({ title: 'Shift removed.' })
     } catch {

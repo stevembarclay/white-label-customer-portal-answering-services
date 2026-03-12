@@ -13,7 +13,7 @@ export default async function ClientDetailPage({
   const context = await checkOperatorAccessOrThrow()
   const [client, onCallStatus] = await Promise.all([
     getClientDetail(id, context.operatorOrgId),
-    getClientOnCallStatus(id),
+    getClientOnCallStatus(id, context.operatorOrgId),
   ])
 
   if (!client) notFound()

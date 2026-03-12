@@ -6,6 +6,7 @@ import {
   loadSchedulerData,
 } from '@/lib/services/answering-service/onCallService'
 import { resolveActiveShift } from '@/lib/services/answering-service/onCallScheduler'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import { sanitizeErrorMessage } from '@/lib/utils/errorSanitizer'
 import { logger } from '@/lib/utils/logger'
 
@@ -29,6 +30,24 @@ export async function GET(request: NextRequest) {
         { error: { message: 'business_id required for operator keys', code: 'BAD_REQUEST' } },
         { status: 400 }
       )
+    }
+
+    // Operator keys: verify the business belongs to the key's org
+    if (auth.operatorOrgId) {
+      const supabase = createServiceRoleClient()
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('id', businessId)
+        .eq('operator_org_id', auth.operatorOrgId)
+        .maybeSingle()
+
+      if (!business) {
+        return NextResponse.json(
+          { error: { message: 'Business not found or not in your org.', code: 'NOT_FOUND' } },
+          { status: 404 }
+        )
+      }
     }
 
     const now = new Date()

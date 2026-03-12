@@ -9,6 +9,12 @@ export async function POST(request: NextRequest) {
   const { timezone } = await request.json()
   if (!timezone) return NextResponse.json({ error: 'timezone required' }, { status: 400 })
 
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: timezone })
+  } catch {
+    return NextResponse.json({ error: 'Invalid timezone identifier' }, { status: 400 })
+  }
+
   await setBusinessTimezone(context.businessId, timezone)
   return NextResponse.json({ ok: true })
 }

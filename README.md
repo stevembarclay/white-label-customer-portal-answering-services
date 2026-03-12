@@ -21,12 +21,13 @@ This portal has two parties:
 | Feature | Status |
 |---------|--------|
 | **Setup Wizard** — 7-step onboarding with AI coach (GPT-4o-mini) | Complete |
+| **Who to Call** — weekly on-call schedule, contact book, overnight shifts, public API | Complete |
 | **Messages / Call Logs** — transcript viewer with speaker segmentation | UI complete, needs real data source |
 | **Dashboard** — call volume, activity feed, balance overview | UI complete, needs real data source |
 | **Billing** — invoice table, usage tracking, running estimate | UI complete, needs real data source |
 | **Auth** — login, magic link, forgot password | UI complete |
 
-The setup wizard and AI coach are fully functional. The dashboard, messages, and billing pages have complete UIs backed by Supabase — seed demo data to see them in action, then connect your telephony and billing APIs for production.
+The setup wizard, AI coach, and on-call scheduling are fully functional. The dashboard, messages, and billing pages have complete UIs backed by Supabase — seed demo data to see them in action, then connect your telephony and billing APIs for production.
 
 ---
 
@@ -115,10 +116,52 @@ All database operations go through the service layer in `lib/services/answering-
 | Service | Purpose | Backing |
 |---------|---------|---------|
 | `wizardService.ts` | 7-step onboarding wizard | Supabase (live) |
+| `onCallService.ts` | On-call contacts and shift CRUD | Supabase (service role writes) |
+| `onCallScheduler.ts` | Pure shift resolver — timezone-aware, overnight support | No I/O |
 | `billingService.ts` | Invoices, running estimate, billing rules | Supabase (live) |
 | `messageService.ts` | Call logs, transcripts, priority, QA flags | Supabase (live) |
 | `dashboardService.ts` | Summary stats, unread count, call volume | Supabase (live) |
 | `billingEngine.ts` | Pure billing calculation logic | No I/O |
+
+### On-call scheduling
+
+Businesses configure a weekly contact schedule in the **Who to Call** portal page (`/answering-service/on-call`). The schedule supports:
+
+- **Contacts** — a reusable contact book (name, phone, role, notes)
+- **Shifts** — recurring weekly windows with day/time/timezone and an ordered escalation chain (call contact 1, wait N minutes, then contact 2, etc.)
+- **Overnight shifts** — shifts that cross midnight are handled correctly
+- **Overlap validation** — the API rejects shifts that overlap an existing active shift (422)
+
+The current on-call contact is exposed via a public API endpoint for telephony integrations:
+
+```
+GET /api/v1/on-call/current
+Authorization: Bearer <operator-key-with-on_call:read-scope>
+?business_id=<uuid>          # required for operator keys
+```
+
+Response:
+```json
+{
+  "data": {
+    "businessId": "...",
+    "asOf": "2026-03-12T03:00:00.000Z",
+    "shiftId": "...",
+    "shiftName": "Weeknight",
+    "shiftEndsAt": "2026-03-12T09:00:00.000Z",
+    "escalationSteps": [
+      { "step": 1, "name": "Dr. Smith", "phone": "555-0100", "role": "Physician", "waitMinutes": 5 },
+      { "step": 2, "name": "Dr. Jones", "phone": "555-0200", "role": "Physician", "waitMinutes": null }
+    ]
+  }
+}
+```
+
+Returns `{ shiftId: null, escalationSteps: [] }` when no shift is active.
+
+The `on_call:read` scope can only be issued to operator-scoped API keys (not business keys). Operator keys must pass `business_id`; business-scoped keys are not supported for this endpoint.
+
+**DB migration:** `migrations/20260312100000_add_on_call_scheduling.sql` — adds `on_call_contacts`, `on_call_shifts` tables and `businesses.on_call_timezone`.
 
 ### Connecting your telephony provider
 
@@ -147,15 +190,21 @@ All API routes call `checkModuleAccessOrThrow('answering_service')`. For standal
 ```
 app/
   (auth)/                          # Login, forgot password, magic link
-  (platform)/answering-service/    # Portal pages (setup, dashboard, billing, messages)
+  (platform)/answering-service/    # Portal pages (setup, dashboard, billing, messages, on-call)
+  (operator)/operator/             # Operator portal (clients, API keys, webhooks)
   api/answering-service/           # API routes (coach, dashboard, messages, billing)
+  api/v1/                          # Public API (calls, on-call/current)
+  api/v1/internal/on-call/         # Session-authenticated on-call mutation routes
 
-components/answering-service/      # All UI components
+components/answering-service/      # All UI components (SideNav, BottomNav, etc.)
+components/operator/               # Operator UI components (ApiKeyManager, etc.)
 lib/
-  services/answering-service/      # Service layer (business logic + data access)
+  services/answering-service/      # Service layer (wizard, on-call, billing, messages)
+  services/operator/               # Operator service layer (clients, API keys, webhooks)
   design/                          # Design system tokens (typography, color, spacing)
-  supabase/                        # Supabase client helpers
+  supabase/                        # Supabase client helpers (server, service role)
   auth/                            # Auth context helpers
+  api/                             # Bearer token validation
   middleware/                      # Rate limiting, module access guard
   utils/                           # Logger, error sanitizer, CORS, cn()
 

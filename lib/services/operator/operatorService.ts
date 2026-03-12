@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import type { ClientHealthBreakdown, ClientRow } from '@/types/operator'
 import { loadSchedulerData, getBusinessTimezone } from '@/lib/services/answering-service/onCallService'
 import { resolveActiveShift } from '@/lib/services/answering-service/onCallScheduler'
@@ -384,7 +385,23 @@ export interface ClientOnCallStatus {
   shiftName: string | null
 }
 
-export async function getClientOnCallStatus(businessId: string): Promise<ClientOnCallStatus> {
+export async function getClientOnCallStatus(
+  businessId: string,
+  operatorOrgId: string
+): Promise<ClientOnCallStatus> {
+  // Verify the business belongs to this operator's org before reading on-call data
+  const supabase = createServiceRoleClient()
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('operator_org_id', operatorOrgId)
+    .maybeSingle()
+
+  if (!business) {
+    return { contactName: null, contactPhone: null, contactRole: null, shiftName: null }
+  }
+
   const timezone = await getBusinessTimezone(businessId) ?? 'America/New_York'
   const { shifts, contacts } = await loadSchedulerData(businessId)
   const resolved = resolveActiveShift(new Date(), timezone, shifts, contacts)

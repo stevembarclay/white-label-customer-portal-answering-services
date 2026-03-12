@@ -39,6 +39,9 @@ export function ApiKeyManager({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const activeKeys = keys.filter((key) => !key.revokedAt)
+  // Show scope checkboxes only when there are opt-in scopes beyond the standard pair
+  const BASE_SCOPES = ['calls:read', 'billing:read']
+  const hasOptInScopes = availableScopes.some((s) => !BASE_SCOPES.includes(s))
 
   function handleCreate() {
     if (!newLabel.trim()) return
@@ -107,7 +110,7 @@ export function ApiKeyManager({
               {isPending ? 'Working…' : 'Create key'}
             </button>
           </div>
-          {availableScopes.length > 2 && (
+          {hasOptInScopes && (
             <div className="space-y-1 pl-1">
               <p className="text-xs text-slate-500 font-medium">Scopes</p>
               {availableScopes.map((scope) => (

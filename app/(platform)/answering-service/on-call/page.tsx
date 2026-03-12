@@ -53,7 +53,12 @@ export default async function OnCallPage() {
     escalation_steps: s.escalationSteps,
     active: s.active,
   }))
-  const current = resolveActiveShift(now, effectiveTimezone, schedulerShifts, contactMap)
+  let current = null
+  try {
+    current = resolveActiveShift(now, effectiveTimezone, schedulerShifts, contactMap)
+  } catch {
+    // Invalid stored timezone: degrade gracefully rather than crashing the page
+  }
 
   return (
     <div className="space-y-6">

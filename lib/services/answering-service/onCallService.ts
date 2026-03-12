@@ -180,7 +180,9 @@ export async function deleteShift(shiftId: string, businessId: string): Promise<
 // ── Timezone ───────────────────────────────────────────────────────────────
 
 export async function getBusinessTimezone(businessId: string): Promise<string | null> {
-  const supabase = await createClient()
+  // Service role: called from both session-authenticated portals and the
+  // sessionless public API (bearer token), so we cannot rely on RLS auth.uid().
+  const supabase = createServiceRoleClient()
   const { data } = await supabase
     .from('businesses')
     .select('on_call_timezone')
@@ -200,15 +202,35 @@ export async function setBusinessTimezone(businessId: string, timezone: string):
 
 // ── Helpers for the scheduler ──────────────────────────────────────────────
 
-/** Load shifts and contacts in the shape expected by resolveActiveShift */
+/** Load shifts and contacts in the shape expected by resolveActiveShift.
+ *  Uses service role because callers (public API, operator portal) have no
+ *  Supabase session — RLS auth.uid() would be NULL and return zero rows. */
 export async function loadSchedulerData(businessId: string): Promise<{
   shifts: ShiftRow[]
   contacts: Map<string, ContactRow>
 }> {
-  const [shifts, contacts] = await Promise.all([
-    listShifts(businessId),
-    listContacts(businessId),
-  ])
+  const supabase = createServiceRoleClient()
+
+  const [{ data: shiftRows, error: shiftErr }, { data: contactRows, error: contactErr }] =
+    await Promise.all([
+      supabase
+        .from('on_call_shifts')
+        .select('id, business_id, name, days_of_week, start_time, end_time, escalation_steps, active, created_at')
+        .eq('business_id', businessId)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('on_call_contacts')
+        .select('id, business_id, name, phone, role, notes, display_order, created_at')
+        .eq('business_id', businessId)
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
+
+  if (shiftErr) throw new Error('Failed to load on-call shifts.')
+  if (contactErr) throw new Error('Failed to load on-call contacts.')
+
+  const shifts = (shiftRows ?? []).map(mapShift)
+  const contacts = (contactRows ?? []).map(mapContact)
 
   return {
     shifts: shifts.map((s) => ({

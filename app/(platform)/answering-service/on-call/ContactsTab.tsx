@@ -87,11 +87,12 @@ export function ContactsTab({ businessId, contacts, onContactsChange }: Contacts
 
   async function handleDelete(contactId: string) {
     try {
-      await fetch(`/api/v1/internal/on-call/contacts/${contactId}`, {
+      const res = await fetch(`/api/v1/internal/on-call/contacts/${contactId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId }),
       })
+      if (!res.ok) throw new Error('Failed to remove contact.')
       onContactsChange(contacts.filter((c) => c.id !== contactId))
       if (editing?.id === contactId) setEditing(null)
       toast({ title: 'Contact removed.' })
