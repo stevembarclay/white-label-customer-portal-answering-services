@@ -99,3 +99,62 @@ describe('getVerticalPresets — non-escalation verticals', () => {
     expect(getVerticalPresets('other').businessHours.type).toBe('24_7')
   })
 })
+
+describe('getVerticalPresets — escalation verticals', () => {
+  it('medical: escalation is enabled', () => {
+    expect(getVerticalPresets('medical').escalation.enabled).toBe(true)
+  })
+
+  it('medical: escalation.callTypeRules keys all match a callType id', () => {
+    const presets = getVerticalPresets('medical')
+    const callTypeIds = new Set(presets.callTypes.map(ct => ct.id))
+    const ruleKeys = Object.keys(presets.escalation.callTypeRules ?? {})
+    expect(ruleKeys.length).toBeGreaterThan(0)
+    ruleKeys.forEach(key => expect(callTypeIds).toContain(key))
+  })
+
+  it('medical: Urgent Medical callType has canEscalate=true in escalation rules', () => {
+    const presets = getVerticalPresets('medical')
+    const urgentCt = presets.callTypes.find(ct => ct.name === 'Urgent Medical')
+    expect(urgentCt).toBeDefined()
+    const rule = presets.escalation.callTypeRules?.[urgentCt!.id]
+    expect(rule?.canEscalate).toBe(true)
+    expect(rule?.timeCondition).toBe('24_hours')
+  })
+
+  it('medical: auto-selected template exists in dropdown', () => {
+    const presets = getVerticalPresets('medical')
+    const ids = getIndustryGreetingTemplates('medical').map(t => t.id)
+    expect(ids).toContain(presets.greeting.template)
+  })
+
+  it('medical: channels include sms and urgentSmsEnabled is true', () => {
+    const presets = getVerticalPresets('medical')
+    expect(presets.messageDelivery.globalDefaults.channels).toContain('sms')
+    expect(presets.messageDelivery.globalDefaults.urgentSmsEnabled).toBe(true)
+  })
+
+  it('medical: businessHours type is custom', () => {
+    expect(getVerticalPresets('medical').businessHours.type).toBe('custom')
+  })
+
+  it('home_services: escalation.callTypeRules keys all match a callType id', () => {
+    const presets = getVerticalPresets('home_services')
+    const callTypeIds = new Set(presets.callTypes.map(ct => ct.id))
+    const ruleKeys = Object.keys(presets.escalation.callTypeRules ?? {})
+    expect(ruleKeys.length).toBeGreaterThan(0)
+    ruleKeys.forEach(key => expect(callTypeIds).toContain(key))
+  })
+
+  it('home_services: Emergency Service callType has canEscalate=true', () => {
+    const presets = getVerticalPresets('home_services')
+    const emergencyCt = presets.callTypes.find(ct => ct.name === 'Emergency Service')
+    expect(emergencyCt).toBeDefined()
+    const rule = presets.escalation.callTypeRules?.[emergencyCt!.id]
+    expect(rule?.canEscalate).toBe(true)
+  })
+
+  it('home_services: businessHours type is 24_7', () => {
+    expect(getVerticalPresets('home_services').businessHours.type).toBe('24_7')
+  })
+})

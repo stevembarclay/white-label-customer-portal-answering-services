@@ -293,9 +293,148 @@ function getOtherPresets(): VerticalPresets {
   }
 }
 
-// Placeholder stubs — will be replaced in Task 3
-function getMedicalPresets(): VerticalPresets { return getOtherPresets() }
-function getHomeServicesPresets(): VerticalPresets { return getOtherPresets() }
+function getMedicalPresets(): VerticalPresets {
+  const newPatientId = crypto.randomUUID()
+  const existingPatientId = crypto.randomUUID()
+  const pharmacyId = crypto.randomUUID()
+  const urgentMedicalId = crypto.randomUUID()
+
+  return {
+    greeting: { template: 'medical-1', presentAs: 'employee', language: 'english' },
+    businessHours: { type: 'custom', timezone: 'America/New_York', customHours: medicalWeekdayHours() },
+    callTypes: [
+      {
+        id: newPatientId,
+        name: 'New Patient',
+        timeConditions: {
+          businessHours: {
+            action: 'take_message',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'date_of_birth', required: true, customLabel: 'Date of birth' }],
+          },
+          afterHours: {
+            action: 'take_message',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'date_of_birth', required: true, customLabel: 'Date of birth' }],
+          },
+        },
+      },
+      {
+        id: existingPatientId,
+        name: 'Existing Patient',
+        timeConditions: {
+          businessHours: {
+            action: 'screen_and_patch',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'date_of_birth', required: true, customLabel: 'Date of birth' }],
+          },
+          afterHours: {
+            action: 'take_message',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'date_of_birth', required: true, customLabel: 'Date of birth' }],
+          },
+        },
+      },
+      {
+        id: pharmacyId,
+        name: 'Pharmacy/Provider',
+        timeConditions: {
+          always: {
+            action: 'patch',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'provider_name', required: false, customLabel: 'Pharmacy or provider name' }],
+          },
+        },
+      },
+      {
+        id: urgentMedicalId,
+        name: 'Urgent Medical',
+        timeConditions: {
+          always: {
+            action: 'patch',
+            infoToCollect: [...BASE_INFO_FIELDS, { field: 'emergency_nature', required: true, customLabel: 'Nature of emergency' }],
+          },
+        },
+      },
+    ],
+    messageDelivery: { globalDefaults: { channels: ['email', 'sms'], urgentSmsEnabled: true } },
+    escalation: {
+      enabled: true,
+      callTypeRules: {
+        [urgentMedicalId]: {
+          canEscalate: true,
+          criteria: 'Patient reports emergency symptoms',
+          timeCondition: '24_hours',
+        },
+      },
+      globalEscalationContact: '',
+    },
+  }
+}
+
+function getHomeServicesPresets(): VerticalPresets {
+  const serviceRequestId = crypto.randomUUID()
+  const emergencyServiceId = crypto.randomUUID()
+  const existingCustomerId = crypto.randomUUID()
+
+  return {
+    greeting: { template: 'template-1', presentAs: 'employee', language: 'english' },
+    businessHours: { type: '24_7', timezone: 'America/New_York' },
+    callTypes: [
+      {
+        id: serviceRequestId,
+        name: 'Service Request',
+        timeConditions: {
+          businessHours: {
+            action: 'take_message',
+            infoToCollect: [
+              ...BASE_INFO_FIELDS,
+              { field: 'service_address', required: true, customLabel: 'Service address' },
+              { field: 'issue_description', required: true, customLabel: 'Issue description' },
+            ],
+          },
+          afterHours: {
+            action: 'take_message',
+            infoToCollect: [
+              ...BASE_INFO_FIELDS,
+              { field: 'service_address', required: true, customLabel: 'Service address' },
+              { field: 'issue_description', required: true, customLabel: 'Issue description' },
+            ],
+          },
+        },
+      },
+      {
+        id: emergencyServiceId,
+        name: 'Emergency Service',
+        timeConditions: {
+          always: {
+            action: 'patch',
+            infoToCollect: [
+              ...BASE_INFO_FIELDS,
+              { field: 'service_address', required: true, customLabel: 'Service address' },
+              { field: 'emergency_nature', required: true, customLabel: 'Nature of emergency' },
+            ],
+          },
+        },
+      },
+      {
+        id: existingCustomerId,
+        name: 'Existing Customer',
+        timeConditions: {
+          businessHours: { action: 'screen_and_patch', infoToCollect: [...BASE_INFO_FIELDS] },
+          afterHours: { action: 'take_message', infoToCollect: [...BASE_INFO_FIELDS] },
+        },
+      },
+    ],
+    messageDelivery: { globalDefaults: { channels: ['email', 'sms'], urgentSmsEnabled: true } },
+    escalation: {
+      enabled: true,
+      callTypeRules: {
+        [emergencyServiceId]: {
+          canEscalate: true,
+          criteria: 'Property damage or safety emergency',
+          timeCondition: '24_hours',
+        },
+      },
+      globalEscalationContact: '',
+    },
+  }
+}
 
 /**
  * Returns vertical-specific defaults for all wizard steps 1–5.
