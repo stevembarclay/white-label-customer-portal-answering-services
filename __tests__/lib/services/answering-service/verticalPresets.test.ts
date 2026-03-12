@@ -38,3 +38,64 @@ describe('getIndustryGreetingTemplates', () => {
     expect(ids).not.toContain('home_services-1')
   })
 })
+
+// Shared fixture — all five keys present
+function expectFullShape(presets: ReturnType<typeof getVerticalPresets>) {
+  expect(presets).toMatchObject({
+    greeting: expect.objectContaining({ template: expect.any(String) }),
+    businessHours: expect.objectContaining({ type: expect.any(String) }),
+    callTypes: expect.any(Array),
+    messageDelivery: expect.objectContaining({ globalDefaults: expect.any(Object) }),
+    escalation: expect.objectContaining({ enabled: expect.any(Boolean) }),
+  })
+}
+
+describe('getVerticalPresets — non-escalation verticals', () => {
+  it('legal: returns full shape', () => {
+    expectFullShape(getVerticalPresets('legal'))
+  })
+
+  it('legal: auto-selected greeting template exists in dropdown', () => {
+    const presets = getVerticalPresets('legal')
+    const ids = getIndustryGreetingTemplates('legal').map(t => t.id)
+    expect(ids).toContain(presets.greeting.template)
+  })
+
+  it('legal: businessHours type is custom', () => {
+    expect(getVerticalPresets('legal').businessHours.type).toBe('custom')
+  })
+
+  it('legal: escalation is disabled', () => {
+    expect(getVerticalPresets('legal').escalation.enabled).toBe(false)
+  })
+
+  it('legal: has 4 call types', () => {
+    expect(getVerticalPresets('legal').callTypes).toHaveLength(4)
+  })
+
+  it('real_estate: auto-selected template exists in dropdown', () => {
+    const presets = getVerticalPresets('real_estate')
+    const ids = getIndustryGreetingTemplates('real_estate').map(t => t.id)
+    expect(ids).toContain(presets.greeting.template)
+  })
+
+  it('real_estate: greeting template is real_estate-1', () => {
+    expect(getVerticalPresets('real_estate').greeting.template).toBe('real_estate-1')
+  })
+
+  it('professional_services: presentAs is answering_service', () => {
+    expect(getVerticalPresets('professional_services').greeting.presentAs).toBe('answering_service')
+  })
+
+  it('other: returns non-null (regression guard)', () => {
+    expect(getVerticalPresets('other')).not.toBeNull()
+  })
+
+  it('other: has at least 2 call types', () => {
+    expect(getVerticalPresets('other').callTypes.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('other: businessHours type is 24_7', () => {
+    expect(getVerticalPresets('other').businessHours.type).toBe('24_7')
+  })
+})
