@@ -23,13 +23,18 @@ export function ApiKeyManager({
   onCreateKey,
   onRevokeKey,
   isAdmin,
+  availableScopes = ['calls:read', 'billing:read'],
 }: {
   keys: Key[]
   onCreateKey: (label: string, scopes: string[]) => Promise<CreateKeySuccess | CreateKeyFailure>
   onRevokeKey: (id: string) => Promise<void>
   isAdmin: boolean
+  availableScopes?: string[]
 }) {
   const [newLabel, setNewLabel] = useState('')
+  const [selectedScopes, setSelectedScopes] = useState<string[]>(
+    availableScopes.filter((s) => s !== 'on_call:read' && s !== 'usage:write')
+  )
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -40,7 +45,7 @@ export function ApiKeyManager({
 
     startTransition(async () => {
       setError(null)
-      const result = await onCreateKey(newLabel.trim(), ['calls:read', 'billing:read'])
+      const result = await onCreateKey(newLabel.trim(), selectedScopes)
 
       if ('error' in result) {
         setError(result.error)
@@ -84,28 +89,58 @@ export function ApiKeyManager({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {isAdmin && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Key label"
-            value={newLabel}
-            onChange={(event) => setNewLabel(event.target.value)}
-            className="flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-          />
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isPending || !newLabel.trim()}
-            className="rounded-md bg-slate-900 px-4 py-1.5 text-sm text-white disabled:opacity-50"
-          >
-            {isPending ? 'Working…' : 'Create key'}
-          </button>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Key label"
+              value={newLabel}
+              onChange={(event) => setNewLabel(event.target.value)}
+              className="flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={isPending || !newLabel.trim()}
+              className="rounded-md bg-slate-900 px-4 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              {isPending ? 'Working…' : 'Create key'}
+            </button>
+          </div>
+          {availableScopes.length > 2 && (
+            <div className="space-y-1 pl-1">
+              <p className="text-xs text-slate-500 font-medium">Scopes</p>
+              {availableScopes.map((scope) => (
+                <label
+                  key={scope}
+                  className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedScopes.includes(scope)}
+                    onChange={(e) => {
+                      setSelectedScopes((prev) =>
+                        e.target.checked
+                          ? [...prev, scope]
+                          : prev.filter((s) => s !== scope)
+                      )
+                    }}
+                    className="rounded"
+                  />
+                  <span className="font-mono">{scope}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <ul className="space-y-2">
         {activeKeys.map((key) => (
-          <li key={key.id} className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm">
+          <li
+            key={key.id}
+            className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm"
+          >
             <div className="min-w-0">
               <p className="font-medium">{key.label}</p>
               <p className="text-xs text-slate-400">{key.scopes.join(', ')}</p>

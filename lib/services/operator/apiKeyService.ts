@@ -35,6 +35,9 @@ export async function createApiKey(input: CreateKeyInput): Promise<CreateKeyResu
   if (input.businessId && input.scopes.includes('usage:write')) {
     throw new Error('usage:write scope cannot be issued to a business-scoped API key.')
   }
+  if (input.businessId && input.scopes.includes('on_call:read')) {
+    throw new Error('on_call:read scope cannot be issued to a business-scoped API key.')
+  }
 
   const rawKey = generateRawApiKey()
   const keyHash = hashApiKey(rawKey)

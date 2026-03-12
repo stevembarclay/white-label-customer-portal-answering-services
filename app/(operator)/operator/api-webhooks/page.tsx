@@ -61,6 +61,7 @@ export default async function ApiWebhooksPage() {
           onCreateKey={createOperatorApiKeyAction}
           onRevokeKey={revokeOperatorApiKeyAction}
           isAdmin={context.role === 'admin'}
+          availableScopes={['calls:read', 'billing:read', 'usage:write', 'on_call:read']}
         />
       </section>
 
