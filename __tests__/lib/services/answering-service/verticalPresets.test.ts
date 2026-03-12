@@ -158,3 +158,77 @@ describe('getVerticalPresets — escalation verticals', () => {
     expect(getVerticalPresets('home_services').businessHours.type).toBe('24_7')
   })
 })
+
+// Reusable pristine fixture
+const PRISTINE: AnsweringServiceSetup = {
+  profile: { businessName: 'Acme', contactName: 'Alice', email: 'alice@acme.com', phone: '', industry: 'legal' },
+  greeting: { template: '', presentAs: 'answering_service', language: 'english' },
+  businessHours: { type: '24_7', timezone: 'America/New_York' },
+  callTypes: [],
+  callHandling: { defaultAction: 'take_message', patchNumber: '', screeningQuestions: [] },
+  messageDelivery: { globalDefaults: { channels: ['email'], urgentSmsEnabled: false, emailAddress: '' } },
+  escalation: { enabled: false },
+  billingConfirm: { planTier: '', confirmedTerms: false },
+}
+
+describe('applyVerticalPresets', () => {
+  it('returns presets for a pristine form with a known industry', () => {
+    expect(applyVerticalPresets('legal', PRISTINE)).not.toBeNull()
+  })
+
+  it('returns null when greeting.template is non-empty', () => {
+    const dirty = { ...PRISTINE, greeting: { ...PRISTINE.greeting, template: 'template-1' } }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when callTypes is non-empty', () => {
+    const dirty = {
+      ...PRISTINE,
+      callTypes: [{ id: 'x', name: 'Test', timeConditions: { always: { action: 'take_message' as const } } }],
+    }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when businessHours.type is not 24_7', () => {
+    const dirty = { ...PRISTINE, businessHours: { ...PRISTINE.businessHours, type: 'custom' as const } }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when businessHours.customHours is set', () => {
+    const dirty = {
+      ...PRISTINE,
+      businessHours: { ...PRISTINE.businessHours, customHours: [{ day: 'monday', open: '9:00 AM', close: '5:00 PM', closed: false }] },
+    }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when escalation is enabled', () => {
+    const dirty = { ...PRISTINE, escalation: { enabled: true, globalEscalationContact: '555-1234' } }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when emailAddress is non-empty', () => {
+    const dirty = {
+      ...PRISTINE,
+      messageDelivery: {
+        globalDefaults: { ...PRISTINE.messageDelivery.globalDefaults, emailAddress: 'test@test.com' },
+      },
+    }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns null when urgentSmsEnabled is true', () => {
+    const dirty = {
+      ...PRISTINE,
+      messageDelivery: {
+        globalDefaults: { ...PRISTINE.messageDelivery.globalDefaults, urgentSmsEnabled: true },
+      },
+    }
+    expect(applyVerticalPresets('legal', dirty)).toBeNull()
+  })
+
+  it('returns generic presets (not null) for other industry — regression guard', () => {
+    const otherPristine = { ...PRISTINE, profile: { ...PRISTINE.profile, industry: 'other' as const } }
+    expect(applyVerticalPresets('other', otherPristine)).not.toBeNull()
+  })
+})

@@ -451,6 +451,46 @@ export function getVerticalPresets(industry: Industry): VerticalPresets {
   }
 }
 
-export function applyVerticalPresets(_industry: Industry, _currentValues: AnsweringServiceSetup): VerticalPresets | null {
-  throw new Error('Not implemented yet')
+// ─── Idempotency Gate ─────────────────────────────────────────────────────────
+
+/**
+ * Returns true if all downstream wizard steps (1–5) are still at their
+ * empty default values — i.e., the user hasn't filled anything in yet.
+ *
+ * Note: home_services uses businessHours.type '24_7' (same as pristine default),
+ * so the businessHours sentinel does not distinguish pre-populated from pristine
+ * for that vertical. The greeting.template and callTypes sentinels are
+ * load-bearing for home_services idempotency.
+ */
+function isPristine(currentValues: AnsweringServiceSetup): boolean {
+  const { greeting, callTypes, businessHours, messageDelivery, escalation } = currentValues
+  return (
+    greeting.template === '' &&
+    callTypes.length === 0 &&
+    businessHours.type === '24_7' &&
+    !businessHours.customHours &&
+    messageDelivery.globalDefaults.channels.length === 1 &&
+    messageDelivery.globalDefaults.channels[0] === 'email' &&
+    !messageDelivery.globalDefaults.urgentSmsEnabled &&
+    (!messageDelivery.globalDefaults.emailAddress || messageDelivery.globalDefaults.emailAddress === '') &&
+    !escalation.enabled
+  )
+}
+
+/**
+ * Returns vertical-specific defaults if the form is still pristine, null otherwise.
+ * Call this in SetupWizardClient.handleNext after step 0 validates.
+ *
+ * Returns null if:
+ * - Any downstream step has non-default data (first-touch-only rule)
+ *
+ * Always returns a non-null preset for 'other' when pristine (regression guard —
+ * the previous CallTypesStep useEffect pre-populated 'other' with generic call types).
+ */
+export function applyVerticalPresets(
+  industry: Industry,
+  currentValues: AnsweringServiceSetup,
+): VerticalPresets | null {
+  if (!isPristine(currentValues)) return null
+  return getVerticalPresets(industry)
 }
