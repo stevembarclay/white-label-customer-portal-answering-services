@@ -3,9 +3,15 @@
 import { formatDistanceToNow } from 'date-fns'
 import { HealthScoreBadge } from '@/components/operator/HealthScoreBadge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { ClientDetail } from '@/lib/services/operator/operatorService'
+import type { ClientDetail, ClientOnCallStatus } from '@/lib/services/operator/operatorService'
 
-export function ClientDetailTabs({ client }: { client: ClientDetail }) {
+export function ClientDetailTabs({
+  client,
+  onCallStatus,
+}: {
+  client: ClientDetail
+  onCallStatus: ClientOnCallStatus
+}) {
   const { healthBreakdown: hs } = client
 
   return (
@@ -36,6 +42,32 @@ export function ClientDetailTabs({ client }: { client: ClientDetail }) {
           <dt className="text-slate-500">Onboarding</dt>
           <dd>{client.onboardingStatus ?? 'Not started'}</dd>
         </dl>
+        {/* Who to Call (read-only) */}
+        <div className="rounded-md border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold mb-2">Who to Call</h3>
+          {onCallStatus.shiftName ? (
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+              <dt className="text-slate-500">Shift</dt>
+              <dd>{onCallStatus.shiftName}</dd>
+              <dt className="text-slate-500">Contact</dt>
+              <dd>{onCallStatus.contactName ?? '—'}</dd>
+              {onCallStatus.contactRole && (
+                <>
+                  <dt className="text-slate-500">Role</dt>
+                  <dd>{onCallStatus.contactRole}</dd>
+                </>
+              )}
+              {onCallStatus.contactPhone && (
+                <>
+                  <dt className="text-slate-500">Phone</dt>
+                  <dd>{onCallStatus.contactPhone}</dd>
+                </>
+              )}
+            </dl>
+          ) : (
+            <p className="text-sm text-slate-400">No coverage scheduled right now.</p>
+          )}
+        </div>
       </TabsContent>
 
       <TabsContent value="billing" className="pt-4">

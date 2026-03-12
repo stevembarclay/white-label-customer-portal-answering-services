@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { ClientHealthBreakdown, ClientRow } from '@/types/operator'
+import { loadSchedulerData, getBusinessTimezone } from '@/lib/services/answering-service/onCallService'
+import { resolveActiveShift } from '@/lib/services/answering-service/onCallScheduler'
 
 // ─── Pure computation ────────────────────────────────────────────────────────
 
@@ -372,5 +374,30 @@ export async function getClientDetail(
       revokedAt: k.revoked_at ?? null,
     })),
     healthScoreOverride: (biz.health_score_override as number | null) ?? null,
+  }
+}
+
+export interface ClientOnCallStatus {
+  contactName: string | null
+  contactPhone: string | null
+  contactRole: string | null
+  shiftName: string | null
+}
+
+export async function getClientOnCallStatus(businessId: string): Promise<ClientOnCallStatus> {
+  const timezone = await getBusinessTimezone(businessId) ?? 'America/New_York'
+  const { shifts, contacts } = await loadSchedulerData(businessId)
+  const resolved = resolveActiveShift(new Date(), timezone, shifts, contacts)
+
+  if (!resolved || resolved.escalationSteps.length === 0) {
+    return { contactName: null, contactPhone: null, contactRole: null, shiftName: null }
+  }
+
+  const first = resolved.escalationSteps[0]
+  return {
+    contactName: first.name,
+    contactPhone: first.phone,
+    contactRole: first.role,
+    shiftName: resolved.shiftName,
   }
 }

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { ClientDetailTabs } from '@/components/operator/ClientDetailTabs'
 import { HealthScoreBadge } from '@/components/operator/HealthScoreBadge'
 import { checkOperatorAccessOrThrow } from '@/lib/auth/server'
-import { getClientDetail } from '@/lib/services/operator/operatorService'
+import { getClientDetail, getClientOnCallStatus } from '@/lib/services/operator/operatorService'
 
 export default async function ClientDetailPage({
   params,
@@ -11,7 +11,10 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params
   const context = await checkOperatorAccessOrThrow()
-  const client = await getClientDetail(id, context.operatorOrgId)
+  const [client, onCallStatus] = await Promise.all([
+    getClientDetail(id, context.operatorOrgId),
+    getClientOnCallStatus(id),
+  ])
 
   if (!client) notFound()
 
@@ -26,7 +29,7 @@ export default async function ClientDetailPage({
           isOverride={client.healthBreakdown.isOverride}
         />
       </div>
-      <ClientDetailTabs client={client} />
+      <ClientDetailTabs client={client} onCallStatus={onCallStatus} />
     </div>
   )
 }
