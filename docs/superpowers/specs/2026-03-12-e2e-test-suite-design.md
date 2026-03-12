@@ -125,10 +125,11 @@ Any test that asserts "no console errors" does so by attaching a `page.on('conso
 - Running billing estimate element is visible
 
 **settings.e2e.ts** (route: `/answering-service/settings`)
-- Page loads
-- Can update the business name and save — uses a fixed idempotent value ("Riverside Law Group") so repeated runs do not change the production record
-- Can create an API key — key row appears in the table
+- The "Settings" `h1` heading is visible
+- The "API Keys" `h2` heading is visible
+- Can create an API key — key row appears in the list (identified by the key label)
 - Can revoke the created key — key row is removed
+- Note: there is no business name field on this page; the page is API key management only
 
 **on-call.e2e.ts** (route: `/answering-service/on-call`)
 - The "Who to Call" heading is visible (actual `h1` text in `on-call/page.tsx`)
