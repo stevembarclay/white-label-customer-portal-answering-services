@@ -9,32 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card'
 import { FormDescription } from '@/components/ui/form-description'
 import type { AnsweringServiceSetup } from '@/schemas/answeringServiceSchema'
-
-/**
- * Base templates available to all industries
- */
-const BASE_TEMPLATES = [
-  { id: 'template-1', text: 'Thank you for calling {business_name}. How may I help you?' },
-  { id: 'template-2', text: 'Good [morning/afternoon], {business_name}. How may I direct your call?' },
-  { id: 'template-3', text: '{business_name}, this is [agent name]. How can I help you today?' },
-  { id: 'template-4', text: "You've reached {business_name}. May I have your name and the reason for your call?" },
-  { id: 'custom', text: 'Custom' },
-]
-
-/**
- * Legal industry-specific templates
- */
-const LEGAL_TEMPLATES = [
-  { id: 'legal-1', text: 'Law offices of {business_name}. How may I direct your call?' },
-  { id: 'legal-2', text: '{business_name}. Are you a new or existing client?' },
-]
-
-/**
- * Medical industry-specific templates
- */
-const MEDICAL_TEMPLATES = [
-  { id: 'medical-1', text: '{business_name}. Is this regarding an appointment or a medical concern?' },
-]
+import { getIndustryGreetingTemplates } from '@/lib/services/answering-service/verticalPresets'
 
 /**
  * Interpolates template text with actual values
@@ -58,17 +33,10 @@ export function GreetingScriptStep() {
   const greetingLanguage = watch('greeting.language') || 'english'
 
   // Build available templates based on industry
-  const availableTemplates = useMemo(() => {
-    const templates = [...BASE_TEMPLATES]
-    
-    if (profileIndustry === 'legal') {
-      templates.splice(-1, 0, ...LEGAL_TEMPLATES) // Insert before "Custom"
-    } else if (profileIndustry === 'medical') {
-      templates.splice(-1, 0, ...MEDICAL_TEMPLATES) // Insert before "Custom"
-    }
-    
-    return templates
-  }, [profileIndustry])
+  const availableTemplates = useMemo(
+    () => getIndustryGreetingTemplates(profileIndustry),
+    [profileIndustry],
+  )
 
   // Get preview text
   const previewText = useMemo(() => {
