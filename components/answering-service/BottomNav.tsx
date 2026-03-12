@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   EnvelopeSimple,
   Gear,
+  PhoneIncoming,
   Receipt,
   SquaresFour,
 } from '@phosphor-icons/react'
@@ -18,6 +19,7 @@ interface BottomNavProps {
 
 const ITEMS = [
   { href: '/answering-service/messages', label: 'Messages', icon: EnvelopeSimple },
+  { href: '/answering-service/on-call', label: 'On Call', icon: PhoneIncoming },
   { href: '/answering-service/dashboard', label: 'Dashboard', icon: SquaresFour },
   { href: '/answering-service/billing', label: 'Billing', icon: Receipt },
   { href: '/answering-service/settings', label: 'Settings', icon: Gear },
@@ -32,7 +34,7 @@ export function BottomNav({ hasUnreadMessages }: BottomNavProps) {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Mobile navigation"
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {ITEMS.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon

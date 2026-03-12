@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   EnvelopeSimple,
   Gear,
+  PhoneIncoming,
   Receipt,
   SquaresFour,
 } from '@phosphor-icons/react'
@@ -20,6 +21,7 @@ interface SideNavProps {
 
 const ITEMS = [
   { href: '/answering-service/messages', label: 'Messages', icon: EnvelopeSimple },
+  { href: '/answering-service/on-call', label: 'Who to Call', icon: PhoneIncoming },
   { href: '/answering-service/dashboard', label: 'Dashboard', icon: SquaresFour },
   { href: '/answering-service/billing', label: 'Billing', icon: Receipt },
   { href: '/answering-service/settings', label: 'Settings', icon: Gear },
