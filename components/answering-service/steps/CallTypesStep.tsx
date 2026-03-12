@@ -1,176 +1,13 @@
 'use client'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Plus } from '@phosphor-icons/react'
-import { useToast } from '@/components/ui/use-toast'
 import { FormDescription } from '@/components/ui/form-description'
 import type { AnsweringServiceSetup, CallTypes } from '@/schemas/answeringServiceSchema'
 import { CallTypeCard } from './CallTypeCard'
 import { CallTypeEditor } from './CallTypeEditor'
 type CallType = CallTypes[0]
-function getIndustryPresets(industry: AnsweringServiceSetup['profile']['industry']): CallType[] {
-  const baseInfoFields = [
-    { field: 'caller_name', required: true },
-    { field: 'phone_number', required: true },
-  ]
-  switch (industry) {
-    case 'legal':
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'New Client Inquiry',
-          timeConditions: {
-            businessHours: {
-              action: 'screen_and_patch',
-              infoToCollect: baseInfoFields,
-            },
-            afterHours: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Existing Client',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Opposing Counsel',
-          timeConditions: {
-            always: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Emergency',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-      ]
-    case 'medical':
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'New Patient',
-          timeConditions: {
-            businessHours: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-            afterHours: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Existing Patient',
-          timeConditions: {
-            always: {
-              action: 'screen_and_patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Pharmacy/Provider',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Urgent Medical',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-      ]
-    case 'home_services':
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'Service Request',
-          timeConditions: {
-            businessHours: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-            afterHours: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Emergency Service',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Existing Customer',
-          timeConditions: {
-            always: {
-              action: 'screen_and_patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-      ]
-    default:
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'General Inquiry',
-          timeConditions: {
-            always: {
-              action: 'take_message',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-        {
-          id: crypto.randomUUID(),
-          name: 'Urgent',
-          timeConditions: {
-            always: {
-              action: 'patch',
-              infoToCollect: baseInfoFields,
-            },
-          },
-        },
-      ]
-  }
-}
 function getIndustryLabel(industry: AnsweringServiceSetup['profile']['industry']): string {
   const labels: Record<AnsweringServiceSetup['profile']['industry'], string> = {
     legal: 'legal',
@@ -188,8 +25,6 @@ export function CallTypesStep() {
     control,
     name: 'callTypes',
   })
-  const { toast } = useToast()
-  const hasPrePopulated = useRef(false)
   const callTypes = watch('callTypes') || []
   const industry = watch('profile.industry')
   // Industry-specific examples for helper text
@@ -207,18 +42,6 @@ export function CallTypesStep() {
         return 'Each call type defines how Answering Service handles that specific kind of call—whether to take a message, transfer immediately, or ask questions first then transfer.'
     }
   }, [industry])
-  // Pre-populate on first load if empty
-  useEffect(() => {
-    if (!hasPrePopulated.current && callTypes.length === 0 && industry) {
-      const presets = getIndustryPresets(industry)
-      presets.forEach((preset) => append(preset))
-      hasPrePopulated.current = true
-      toast({
-        title: 'Call types added',
-        description: `We've added common call types for ${getIndustryLabel(industry)} businesses. Tap any to customize.`,
-      })
-    }
-  }, [callTypes.length, industry, append, toast])
   const [editingCallType, setEditingCallType] = useState<CallType | null>(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const handleAddNew = () => {
