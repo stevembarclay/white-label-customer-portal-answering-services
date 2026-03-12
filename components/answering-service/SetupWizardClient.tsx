@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { WizardService } from '@/lib/services/answering-service/wizardService'
+import { applyVerticalPresets } from '@/lib/services/answering-service/verticalPresets'
 import { CheckCircle } from '@phosphor-icons/react'
 import { logger } from '@/lib/utils/logger'
 interface SetupWizardClientProps {
@@ -320,6 +321,23 @@ export function SetupWizardClient({ businessId, userId, userRole, userEmail, ini
       })
       logger.error('[SetupWizardClient] Validation failed - cannot proceed to next step')
       return
+    }
+    // Pre-populate Steps 1–5 with vertical defaults on first advance past Step 0
+    if (currentStep === 0) {
+      const industry = methods.getValues('profile.industry')
+      if (!industry) return // narrows '' away for TypeScript; unreachable at runtime (validation just passed)
+      const presets = applyVerticalPresets(industry, methods.getValues())
+      if (presets) {
+        methods.setValue('greeting', presets.greeting)
+        methods.setValue('businessHours', presets.businessHours)
+        methods.setValue('callTypes', presets.callTypes)
+        methods.setValue('messageDelivery', presets.messageDelivery)
+        methods.setValue('escalation', presets.escalation)
+        toast({
+          title: 'Defaults pre-filled',
+          description: "We've applied industry defaults — customize them as you go.",
+        })
+      }
     }
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1)
