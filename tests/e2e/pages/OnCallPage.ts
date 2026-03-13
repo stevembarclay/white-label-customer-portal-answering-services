@@ -28,12 +28,14 @@ export class OnCallPage {
   }
 
   // Contact form (appears after clicking + Add contact)
+  // The Label elements have no htmlFor/id association, so getByLabel won't work.
+  // Use placeholder text instead (from ContactsTab.tsx).
   contactNameInput() {
-    return this.page.getByLabel('Name *')
+    return this.page.getByPlaceholder('Dr. Sarah Smith')
   }
 
   contactPhoneInput() {
-    return this.page.getByLabel('Phone *')
+    return this.page.getByPlaceholder('555-0100')
   }
 
   saveContactButton() {
@@ -57,8 +59,9 @@ export class OnCallPage {
   }
 
   escalationContactSelect() {
-    // The first escalation step contact select
-    return this.page.getByRole('combobox').first()
+    // Scoped to the Sheet dialog to avoid matching the timezone combobox on the main page.
+    // The ShiftBuilder renders escalation contact selects inside a Sheet (dialog).
+    return this.page.getByRole('dialog').getByRole('combobox').first()
   }
 
   saveShiftButton() {
