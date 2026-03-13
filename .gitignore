@@ -39,6 +39,7 @@ tsconfig.tsbuildinfo
 playwright-report/
 test-results/
 coverage/
+.auth/*.json
 
 # Internal tooling (not for public repo)
 .claude/
