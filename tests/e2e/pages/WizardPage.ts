@@ -18,6 +18,7 @@ export class WizardPage {
   }
 
   stepTitle(name: string) {
-    return this.page.getByRole('heading', { name })
+    // CardTitle renders as a <div data-slot="card-title">, not an <h*> element
+    return this.page.locator('[data-slot="card-title"]').filter({ hasText: name })
   }
 }
