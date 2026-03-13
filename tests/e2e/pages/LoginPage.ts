@@ -28,4 +28,11 @@ export class LoginPage {
       process.env.TEST_OPERATOR_PASSWORD ?? 'operator-password-2026',
     )
   }
+
+  async signInRaw(email: string, password: string) {
+    await this.page.getByLabel('Email address').fill(email)
+    await this.page.getByLabel('Password').fill(password)
+    await this.page.getByRole('button', { name: 'Sign in' }).click()
+    // No waitForURL — caller handles assertion (used for failed-login test)
+  }
 }

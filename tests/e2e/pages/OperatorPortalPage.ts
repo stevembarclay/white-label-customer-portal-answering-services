@@ -26,4 +26,8 @@ export class OperatorPortalPage {
   async clientRowCount(): Promise<number> {
     return this.page.getByRole('table').getByRole('row').count()
   }
+
+  async gotoBillingTemplates() {
+    await this.page.goto('/operator/billing-templates')
+  }
 }

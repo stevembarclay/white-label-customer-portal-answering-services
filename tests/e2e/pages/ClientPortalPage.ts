@@ -26,4 +26,12 @@ export class ClientPortalPage {
   navItems(): Locator {
     return this.page.getByRole('navigation').getByRole('link')
   }
+
+  async gotoSetup() {
+    await this.page.goto('/answering-service/setup')
+  }
+
+  async gotoOnCall() {
+    await this.page.goto('/answering-service/on-call')
+  }
 }
