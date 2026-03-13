@@ -18,6 +18,10 @@ export default defineConfig({
       name: 'setup',
       testMatch: '**/auth.setup.ts',
       use: { ...devices['Desktop Chrome'] },
+      // auth-tests must complete first: the Supabase project enforces a single
+      // active session per user, so each new login invalidates prior sessions.
+      // Running setup after auth-tests ensures the saved auth state is fresh.
+      dependencies: ['auth-tests'],
     },
     {
       name: 'auth-tests',
