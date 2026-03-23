@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getBusinessContext } from '@/lib/auth/server'
+import { getBusinessContext, getUser } from '@/lib/auth/server'
 import { portalConfig } from '@/lib/config/portal'
 import { checkModuleAccessOrThrow } from '@/lib/middleware/requireModule'
 import { getUnreadMessageCount } from '@/lib/services/answering-service/dashboardService'
@@ -18,14 +18,22 @@ export default async function AnsweringServiceLayout({
   }
 
   await checkModuleAccessOrThrow('answering_service')
-  const unreadCount = await getUnreadMessageCount(context.businessId)
+
+  const [unreadCount, user] = await Promise.all([
+    getUnreadMessageCount(context.businessId),
+    getUser(),
+  ])
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 md:px-6">
-        <SideNav hasUnreadMessages={unreadCount > 0} brandName={portalConfig.name} />
-        <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
-      </div>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <SideNav
+        hasUnreadMessages={unreadCount > 0}
+        brandName={portalConfig.name}
+        userEmail={user?.email}
+      />
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+        {children}
+      </main>
       <BottomNav hasUnreadMessages={unreadCount > 0} />
     </div>
   )

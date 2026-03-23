@@ -3,76 +3,118 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  EnvelopeSimple,
-  Gear,
-  PhoneIncoming,
+  LayoutDashboard,
+  Mail,
+  Phone,
   Receipt,
-  SquaresFour,
-} from '@phosphor-icons/react'
-import { cardVariants } from '@/lib/design/card-system'
-import { navStyles } from '@/lib/design/typography-system'
+  Settings,
+  LogOut,
+} from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { signOutAction } from '@/lib/auth/actions'
 
 interface SideNavProps {
   hasUnreadMessages: boolean
   brandName: string
+  userEmail?: string
 }
 
 const ITEMS = [
-  { href: '/answering-service/messages', label: 'Messages', icon: EnvelopeSimple },
-  { href: '/answering-service/on-call', label: 'Who to Call', icon: PhoneIncoming },
-  { href: '/answering-service/dashboard', label: 'Dashboard', icon: SquaresFour },
+  { href: '/answering-service/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/answering-service/messages', label: 'Messages', icon: Mail },
+  { href: '/answering-service/on-call', label: 'On-Call', icon: Phone },
   { href: '/answering-service/billing', label: 'Billing', icon: Receipt },
-  { href: '/answering-service/settings', label: 'Settings', icon: Gear },
+  { href: '/answering-service/settings', label: 'Settings', icon: Settings },
 ] as const
 
-export function SideNav({ hasUnreadMessages, brandName }: SideNavProps) {
+function getInitials(email: string) {
+  const [local] = email.split('@')
+  const parts = local.split(/[._-]/)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return local.slice(0, 2).toUpperCase()
+}
+
+export function SideNav({ hasUnreadMessages, brandName, userEmail }: SideNavProps) {
   const pathname = usePathname()
+  const initials = userEmail ? getInitials(userEmail) : '??'
 
   return (
-    <nav className="hidden md:flex md:w-64 md:flex-col md:gap-6" aria-label="Sidebar navigation">
-      <div className={`${cardVariants.static} p-5`}>
+    <nav
+      className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:justify-between md:bg-[#0f172a]"
+      aria-label="Sidebar navigation"
+    >
+      {/* Top */}
+      <div className="flex flex-col">
+        {/* Brand */}
         <div
-          className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-semibold text-white"
-          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
+          className="flex h-16 items-center gap-3 px-5"
+          style={{ borderBottom: '1px solid #ffffff18' }}
         >
-          {brandName.slice(0, 2).toUpperCase()}
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+            style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
+          >
+            {brandName.slice(0, 2).toUpperCase()}
+          </div>
+          <span className="text-[13px] font-semibold text-white">{brandName}</span>
         </div>
-        <p className={navStyles.brand.desktop}>{brandName}</p>
+
+        {/* Nav items */}
+        <div className="flex flex-col gap-0.5 p-2">
+          {ITEMS.map((item) => {
+            const isActive = pathname.startsWith(item.href)
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'relative flex h-10 items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors',
+                  isActive
+                    ? 'bg-[#1e293b] font-semibold text-white'
+                    : 'font-medium text-[#94a3b8] hover:bg-[#1e293b]/50 hover:text-white'
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
+                {item.href === '/answering-service/messages' && hasUnreadMessages ? (
+                  <span
+                    className="absolute right-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-rose-500"
+                    aria-label="Unread messages"
+                  />
+                ) : null}
+              </Link>
+            )
+          })}
+        </div>
       </div>
 
-      <div className={`${cardVariants.static} flex flex-col gap-2 p-3`}>
-        {ITEMS.map((item) => {
-          const isActive = pathname === item.href
-          const Icon = item.icon
+      {/* Bottom — user + sign out */}
+      <div
+        className="flex h-14 items-center gap-2.5 px-4"
+        style={{ borderTop: '1px solid #ffffff18' }}
+      >
+        {/* Avatar */}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1e293b]">
+          <span className="text-[11px] font-bold text-[#94a3b8]">{initials}</span>
+        </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'relative flex items-center gap-3 rounded-xl px-3 py-3 text-slate-700 transition-colors hover:bg-slate-50',
-                isActive ? navStyles.link.active : navStyles.link.inactive
-              )}
-              style={isActive ? { color: 'var(--portal-brand-color, #334155)' } : undefined}
-            >
-              <span className="relative">
-                <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
-                {item.href === '/answering-service/messages' && hasUnreadMessages ? (
-                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#ef4444]" aria-hidden="true" />
-                ) : null}
-              </span>
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
-        <form action={signOutAction} className="mt-2 border-t border-slate-100 pt-2">
+        {/* Email */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-medium text-white">
+            {userEmail ?? 'Signed in'}
+          </p>
+        </div>
+
+        {/* Sign out */}
+        <form action={signOutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            aria-label="Sign out"
+            className="text-[#94a3b8] transition-colors hover:text-white"
           >
-            Sign out
+            <LogOut className="h-4 w-4" />
           </button>
         </form>
       </div>

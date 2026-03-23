@@ -1,87 +1,135 @@
 'use client'
 
-import { useTransition } from 'react'
-import { signInWithPassword } from '@/app/(auth)/login/actions'
-import { focusStyles, hoverTransitions, touchTarget } from '@/lib/design/motion-system'
-import { bodyStyles } from '@/lib/design/typography-system'
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { Mail, Lock, Zap } from 'lucide-react'
+import { signInWithPassword, sendMagicLink } from '@/app/(auth)/login/actions'
 
 interface LoginFormProps {
   error?: string
   next?: string
 }
 
-const inputClasses = [
-  'w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm',
-  'placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
-  focusStyles.input,
-].join(' ')
+const inputClasses =
+  'w-full h-11 rounded-[10px] border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
 
 export function LoginForm({ error, next }: LoginFormProps) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [isMagicPending, startMagicTransition] = useTransition()
 
-  function handleSubmit(formData: FormData) {
+  function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    const formData = new FormData()
+    formData.set('email', email)
+    formData.set('password', password)
+    formData.set('next', next ?? '/answering-service')
     startTransition(() => {
       void signInWithPassword(formData)
     })
   }
 
-  return (
-    <form action={handleSubmit} className="space-y-4">
-      <input type="hidden" name="next" value={next ?? '/answering-service'} />
+  function handleMagicLink() {
+    const formData = new FormData()
+    formData.set('email', email)
+    startMagicTransition(() => {
+      void sendMagicLink(formData)
+    })
+  }
 
-      <div className="space-y-2">
-        <label htmlFor="email" className={`${bodyStyles.caption} block text-slate-700`}>
+  const busy = isPending || isMagicPending
+
+  return (
+    <form onSubmit={handleSignIn} className="flex flex-col gap-6">
+      {/* Email */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="email" className="text-[13px] font-semibold text-foreground">
           Email address
         </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          disabled={isPending}
-          className={inputClasses}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? 'login-error' : undefined}
-          placeholder="you@example.com"
-        />
+        <div className="relative flex items-center">
+          <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground" />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            disabled={busy}
+            placeholder="you@example.com"
+            className={inputClasses}
+            aria-invalid={Boolean(error)}
+          />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="password" className={`${bodyStyles.caption} block text-slate-700`}>
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          disabled={isPending}
-          className={inputClasses}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? 'login-error' : undefined}
-          placeholder="Enter your password"
-        />
+      {/* Password */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="text-[13px] font-semibold text-foreground">
+            Password
+          </label>
+          <Link
+            href="/login/forgot-password"
+            className="text-[13px] text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+        <div className="relative flex items-center">
+          <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground" />
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            disabled={busy}
+            placeholder="••••••••"
+            className={inputClasses}
+            aria-invalid={Boolean(error)}
+          />
+        </div>
       </div>
 
       {error ? (
         <p
-          id="login-error"
           role="alert"
-          className={`${bodyStyles.caption} rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700`}
+          className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700"
         >
           {error}
         </p>
       ) : null}
 
+      {/* Sign in button */}
       <button
         type="submit"
-        disabled={isPending}
-        className={`${touchTarget} ${hoverTransitions.button} ${focusStyles.primary} w-full rounded-lg px-4 py-3 font-semibold text-white disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-60`}
-        style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
+        disabled={busy}
+        className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-[15px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isPending ? 'Signing in...' : 'Sign in'}
+        {isPending ? 'Signing in…' : 'Sign in'}
+      </button>
+
+      {/* Or divider */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[13px] text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* Magic link button */}
+      <button
+        type="button"
+        onClick={handleMagicLink}
+        disabled={busy}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-[14px] font-semibold text-foreground transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Zap className="h-4 w-4" />
+        {isMagicPending ? 'Sending…' : 'Send me a magic link'}
       </button>
     </form>
   )

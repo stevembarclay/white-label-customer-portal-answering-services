@@ -46,5 +46,11 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    {
+      name: 'visual-qa',
+      testMatch: '**/visual-qa.e2e.ts',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+    },
   ],
 })

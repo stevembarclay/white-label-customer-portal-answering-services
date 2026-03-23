@@ -1,10 +1,7 @@
 import { redirect } from 'next/navigation'
-
-import { ApiKeyManager } from '@/components/operator/ApiKeyManager'
-import { signOutAction } from '@/lib/auth/actions'
 import { getBusinessContext } from '@/lib/auth/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { ApiKeyManager } from '@/components/operator/ApiKeyManager'
 import { createBusinessApiKeyAction, revokeBusinessApiKeyAction } from './actions'
 
 export default async function SettingsPage() {
@@ -29,39 +26,35 @@ export default async function SettingsPage() {
   }))
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-slate-500">
-          Create read-only API keys for your business to integrate calls and billing data into your systems.
+    <div className="flex flex-col gap-6 p-8">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your account, API keys, and notification preferences.
         </p>
-      </header>
+      </div>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold">API Keys</h2>
-          <p className="text-sm text-slate-400">
-            Business API keys only include `calls:read` and `billing:read`. Upload access is never granted here.
-          </p>
+      {/* API Keys card */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex h-14 items-center justify-between border-b border-border px-5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold text-foreground">API Keys</span>
+            <span className="text-[12px] text-muted-foreground">
+              Keys for authenticating third-party integrations
+            </span>
+          </div>
         </div>
-        <ApiKeyManager
-          keys={keys}
-          onCreateKey={createBusinessApiKeyAction}
-          onRevokeKey={revokeBusinessApiKeyAction}
-          isAdmin={true}
-        />
-      </section>
 
-      <section className="border-t border-slate-100 pt-6">
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
-          >
-            Sign out
-          </button>
-        </form>
-      </section>
+        <div className="p-5">
+          <ApiKeyManager
+            keys={keys}
+            onCreateKey={createBusinessApiKeyAction}
+            onRevokeKey={revokeBusinessApiKeyAction}
+            isAdmin={true}
+          />
+        </div>
+      </div>
     </div>
   )
 }

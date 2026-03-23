@@ -1,11 +1,6 @@
-import Link from 'next/link'
-import { LoginForm } from '@/components/answering-service/auth/LoginForm'
-import { MagicLinkButton } from '@/components/answering-service/auth/MagicLinkButton'
+import { Mail, Phone, Receipt } from 'lucide-react'
 import { portalConfig } from '@/lib/config/portal'
-import { cardVariants } from '@/lib/design/card-system'
-import { bodyStyles, headingStyles } from '@/lib/design/typography-system'
-import { cardSpacing } from '@/lib/design/spacing-system'
-import { focusStyles } from '@/lib/design/motion-system'
+import { LoginForm } from '@/components/answering-service/auth/LoginForm'
 
 interface LoginPageProps {
   searchParams: Promise<{ error?: string; next?: string }>
@@ -15,51 +10,69 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
 
   return (
-    <div className="w-full">
-      <div className="mb-8 text-center">
-        <div
-          className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold text-white"
-          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
-        >
-          {portalConfig.name.slice(0, 2).toUpperCase()}
-        </div>
-        <h1 className={`${headingStyles.h2.base} text-slate-900`}>{portalConfig.name}</h1>
-        <p className={`${bodyStyles.small} mt-2 text-slate-600`}>
-          Sign in to review messages, billing, and account settings.
-        </p>
-      </div>
+    <div className="flex min-h-screen">
+      {/* Left panel */}
+      <div className="flex w-[600px] shrink-0 flex-col justify-between bg-[#0f172a] p-16">
+        <div className="flex flex-col gap-12">
+          {/* Brand */}
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+              style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
+            >
+              {portalConfig.name.slice(0, 2).toUpperCase()}
+            </div>
+            <span className="text-lg font-bold text-white">{portalConfig.name}</span>
+          </div>
 
-      <div className={`${cardVariants.interactive} ${cardSpacing.standalone} cursor-default hover:translate-y-0`}>
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h2 className={headingStyles.h3.base}>Sign in</h2>
-            <p className={`${bodyStyles.small} text-slate-600`}>
-              Use your email and password, or request a one-click sign-in link.
+          {/* Headline */}
+          <div className="flex flex-col gap-4">
+            <h1 className="text-[40px] font-bold leading-[1.15] text-white">
+              Your calls,
+              <br />
+              handled professionally.
+            </h1>
+            <p className="text-base leading-relaxed text-slate-400">
+              Review messages, manage on-call schedules, and track billing — all in one place.
             </p>
           </div>
 
-          <LoginForm error={params.error} next={params.next} />
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-slate-200" />
+          {/* Features */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 shrink-0 text-slate-500" />
+              <span className="text-sm text-slate-400">Priority message alerts with caller transcripts</span>
             </div>
-            <div className="relative flex justify-center">
-              <span className={`${bodyStyles.caption} bg-white px-3 text-slate-500`}>or</span>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 shrink-0 text-slate-500" />
+              <span className="text-sm text-slate-400">On-call scheduling with automated routing</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Receipt className="h-4 w-4 shrink-0 text-slate-500" />
+              <span className="text-sm text-slate-400">Transparent per-call billing with monthly invoices</span>
             </div>
           </div>
+        </div>
 
-          <MagicLinkButton />
+        <p className="text-xs text-slate-600">No public sign-up · Invite-only access</p>
+      </div>
 
-          <div className="flex justify-between gap-4">
-            <Link
-              href="/login/forgot-password"
-              className={`${bodyStyles.caption} ${focusStyles.secondary} text-slate-600 transition-colors hover:text-slate-900`}
-            >
-              Forgot password?
-            </Link>
-            <p className={`${bodyStyles.caption} text-slate-500`}>No public signup</p>
+      {/* Right panel */}
+      <div className="flex flex-1 items-center justify-center bg-[#f8fafc]">
+        <div className="flex w-[460px] flex-col gap-8">
+          {/* Form card */}
+          <div className="rounded-2xl border border-border bg-white p-10 shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+            <div className="mb-6 flex flex-col gap-2">
+              <h2 className="text-[28px] font-bold text-foreground">Welcome back</h2>
+              <p className="text-[15px] text-muted-foreground">Sign in to your account to continue.</p>
+            </div>
+            <LoginForm error={params.error} next={params.next} />
           </div>
+
+          {/* Footer */}
+          <p className="text-center text-[13px] text-muted-foreground">
+            Need help? Contact support@example.com
+          </p>
         </div>
       </div>
     </div>

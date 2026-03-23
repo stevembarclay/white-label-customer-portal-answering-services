@@ -1,13 +1,12 @@
 'use client'
 
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useTransition } from 'react'
 import { resetPassword } from '@/app/(auth)/login/actions'
-import { cardVariants } from '@/lib/design/card-system'
-import { cardSpacing } from '@/lib/design/spacing-system'
-import { bodyStyles, headingStyles } from '@/lib/design/typography-system'
-import { focusStyles, hoverTransitions, touchTarget } from '@/lib/design/motion-system'
+import { portalConfig } from '@/lib/config/portal'
+
+const inputClasses =
+  'w-full h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
@@ -21,72 +20,92 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className={`${cardVariants.interactive} ${cardSpacing.standalone} w-full cursor-default hover:translate-y-0`}>
-      <form action={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <h1 className={headingStyles.h3.base}>Choose a new password</h1>
-          <p className={`${bodyStyles.small} text-slate-600`}>
-            Your new password must be at least 8 characters long.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="password" className={`${bodyStyles.caption} block text-slate-700`}>
-            New password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            disabled={isPending}
-            className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="confirm" className={`${bodyStyles.caption} block text-slate-700`}>
-            Confirm password
-          </label>
-          <input
-            id="confirm"
-            name="confirm"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            disabled={isPending}
-            className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? 'reset-password-error' : undefined}
-          />
-        </div>
-
-        {error ? (
-          <p
-            id="reset-password-error"
-            role="alert"
-            className={`${bodyStyles.caption} rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700`}
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex w-[480px] flex-col gap-6">
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[15px] font-bold text-white"
+            style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
           >
-            {error}
-          </p>
-        ) : null}
+            {portalConfig.name.slice(0, 2).toUpperCase()}
+          </div>
+          <span className="text-2xl font-bold text-foreground">{portalConfig.name}</span>
+        </div>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className={`${touchTarget} ${hoverTransitions.button} ${focusStyles.primary} w-full rounded-lg px-4 py-3 font-semibold text-white disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-60`}
-          style={{ backgroundColor: 'var(--portal-brand-color, #334155)' }}
-        >
-          {isPending ? 'Updating...' : 'Update password'}
-        </button>
+        {/* Card */}
+        <div className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-8 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+          <form action={handleSubmit} className="flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex flex-col gap-1">
+              <h1 className="text-xl font-bold text-foreground">Set new password</h1>
+              <p className="text-[13px] text-muted-foreground">
+                Choose a strong password for your account.
+              </p>
+            </div>
 
-        <Link href="/login" className={`${bodyStyles.caption} inline-flex text-slate-700 underline underline-offset-4`}>
-          Back to sign in
-        </Link>
-      </form>
+            {/* Fields */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="password" className="text-[13px] font-semibold text-foreground">
+                  New password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  disabled={isPending}
+                  className={inputClasses}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="confirm" className="text-[13px] font-semibold text-foreground">
+                  Confirm password
+                </label>
+                <input
+                  id="confirm"
+                  name="confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  disabled={isPending}
+                  className={inputClasses}
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? 'reset-error' : undefined}
+                />
+              </div>
+            </div>
+
+            <p className="text-[12px] text-muted-foreground">
+              Must be at least 8 characters with one number and one special character.
+            </p>
+
+            {error ? (
+              <p
+                id="reset-error"
+                role="alert"
+                className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700"
+              >
+                {error}
+              </p>
+            ) : null}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPending ? 'Saving…' : 'Set new password'}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }

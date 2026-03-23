@@ -1,11 +1,16 @@
 import { redirect } from 'next/navigation'
+import { Plus } from 'lucide-react'
 import { getBusinessContext } from '@/lib/auth/server'
 import {
   listContacts,
   listShifts,
   getBusinessTimezone,
 } from '@/lib/services/answering-service/onCallService'
-import { resolveActiveShift, type ShiftRow, type ContactRow } from '@/lib/services/answering-service/onCallScheduler'
+import {
+  resolveActiveShift,
+  type ShiftRow,
+  type ContactRow,
+} from '@/lib/services/answering-service/onCallScheduler'
 import { createClient } from '@/lib/supabase/server'
 import { OnCallClient } from './OnCallClient'
 
@@ -15,14 +20,12 @@ export default async function OnCallPage() {
   const context = await getBusinessContext()
   if (!context) redirect('/login')
 
-  // Fetch contacts, shifts, and business timezone in parallel
   const [contacts, shifts, storedTimezone] = await Promise.all([
     listContacts(context.businessId),
     listShifts(context.businessId),
     getBusinessTimezone(context.businessId),
   ])
 
-  // Fall back to wizard timezone if on_call_timezone not set yet
   let effectiveTimezone = storedTimezone
   if (!effectiveTimezone) {
     const supabase = await createClient()
@@ -39,10 +42,12 @@ export default async function OnCallPage() {
         ?.businessHours?.timezone ?? 'America/New_York'
   }
 
-  // Compute current on-call status server-side (reuse already-fetched data)
   const now = new Date()
   const contactMap = new Map<string, ContactRow>(
-    contacts.map((c) => [c.id, { id: c.id, name: c.name, phone: c.phone, role: c.role, notes: c.notes }])
+    contacts.map((c) => [
+      c.id,
+      { id: c.id, name: c.name, phone: c.phone, role: c.role, notes: c.notes },
+    ])
   )
   const schedulerShifts: ShiftRow[] = shifts.map((s) => ({
     id: s.id,
@@ -57,29 +62,40 @@ export default async function OnCallPage() {
   try {
     current = resolveActiveShift(now, effectiveTimezone, schedulerShifts, contactMap)
   } catch {
-    // Invalid stored timezone: degrade gracefully rather than crashing the page
+    // Invalid stored timezone: degrade gracefully
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Who to Call</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Configure your contact schedule for after-hours and overflow calls.
-        </p>
-      </header>
-      <OnCallClient
-        businessId={context.businessId}
-        initialContacts={contacts}
-        initialShifts={shifts}
-        initialTimezone={effectiveTimezone}
-        currentStatus={current ? {
-          shiftId: current.shiftId,
-          shiftName: current.shiftName,
-          shiftEndsAt: current.shiftEndsAt.toISOString(),
-          escalationSteps: current.escalationSteps,
-        } : null}
-      />
+    <div className="flex h-full flex-col">
+      {/* Top bar */}
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-8">
+        <h1 className="text-xl font-bold text-foreground">On-Call Schedule</h1>
+        {/* The Add Shift button is handled inside OnCallClient; this is a visual placeholder */}
+        <div className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5">
+          <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+          <span className="text-[13px] font-semibold text-primary-foreground">Add Shift</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-8">
+        <OnCallClient
+          businessId={context.businessId}
+          initialContacts={contacts}
+          initialShifts={shifts}
+          initialTimezone={effectiveTimezone}
+          currentStatus={
+            current
+              ? {
+                  shiftId: current.shiftId,
+                  shiftName: current.shiftName,
+                  shiftEndsAt: current.shiftEndsAt.toISOString(),
+                  escalationSteps: current.escalationSteps,
+                }
+              : null
+          }
+        />
+      </div>
     </div>
   )
 }

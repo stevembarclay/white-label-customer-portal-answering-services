@@ -1,5 +1,4 @@
-import { checkOperatorAccessOrThrow } from '@/lib/auth/server'
-import { createClient } from '@/lib/supabase/server'
+import { checkOperatorAccessOrThrow, getUser } from '@/lib/auth/server'
 import { OperatorNav } from '@/components/operator/OperatorNav'
 
 export default async function OperatorLayout({
@@ -7,21 +6,13 @@ export default async function OperatorLayout({
 }: {
   children: React.ReactNode
 }) {
-  const context = await checkOperatorAccessOrThrow()
-
-  const supabase = await createClient()
-  const { data: org } = await supabase
-    .from('operator_orgs')
-    .select('name')
-    .eq('id', context.operatorOrgId)
-    .single()
+  await checkOperatorAccessOrThrow()
+  const user = await getUser()
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 md:px-6">
-        <OperatorNav orgName={org?.name ?? 'Operator'} />
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <OperatorNav userEmail={user?.email} />
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   )
 }

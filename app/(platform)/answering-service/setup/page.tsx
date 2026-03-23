@@ -9,16 +9,15 @@ export const dynamic = 'force-dynamic'
 export default async function AnsweringServiceSetupPage() {
   const context = await getBusinessContext()
   const user = await getUser()
-  
+
   if (!context) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
   if (!user) {
-    redirect('/auth/login')
+    redirect('/login')
   }
 
-  // Fetch existing session server-side
   let sessionData = null
   try {
     const supabase = await createClient()
@@ -32,12 +31,18 @@ export default async function AnsweringServiceSetupPage() {
     }
   } catch (error) {
     console.error('[AnsweringServiceSetupPage] Error fetching session:', error)
-    // Continue without session data - client will create one
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8">
-      <SetupWizardClient 
+    <div className="flex flex-col gap-6 p-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-foreground">Account Setup</h1>
+        <p className="text-sm text-muted-foreground">
+          Complete these steps to activate your answering service.
+        </p>
+      </div>
+
+      <SetupWizardClient
         businessId={context.businessId}
         userId={user.id}
         userRole={context.role}
@@ -47,4 +52,3 @@ export default async function AnsweringServiceSetupPage() {
     </div>
   )
 }
-

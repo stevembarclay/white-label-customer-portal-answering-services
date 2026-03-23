@@ -43,40 +43,45 @@ export default async function ApiWebhooksPage() {
   }))
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">API &amp; Webhooks</h1>
-        <p className="text-sm text-slate-500">
-          Manage operator API keys and outgoing webhook subscriptions for external integrations.
+    <div className="flex flex-col gap-6 p-8">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-foreground">API &amp; Webhooks</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage operator-level API keys and configure event webhooks.
         </p>
-      </header>
+      </div>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold">API Keys</h2>
-          <p className="text-sm text-slate-400">Operator keys can read calls, billing data, and manage webhooks.</p>
+      {/* API Keys card */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex h-[52px] items-center border-b border-border px-5">
+          <span className="text-sm font-semibold text-foreground">Operator API Keys</span>
         </div>
-        <ApiKeyManager
-          keys={keys}
-          onCreateKey={createOperatorApiKeyAction}
-          onRevokeKey={revokeOperatorApiKeyAction}
-          isAdmin={context.role === 'admin'}
-          availableScopes={['calls:read', 'billing:read', 'usage:write', 'on_call:read']}
-        />
-      </section>
+        <div className="p-5">
+          <ApiKeyManager
+            keys={keys}
+            onCreateKey={createOperatorApiKeyAction}
+            onRevokeKey={revokeOperatorApiKeyAction}
+            isAdmin={context.role === 'admin'}
+            availableScopes={['calls:read', 'billing:read', 'usage:write', 'on_call:read']}
+          />
+        </div>
+      </div>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold">Webhook Subscriptions</h2>
-          <p className="text-sm text-slate-400">Subscriptions are signed with HMAC-SHA256 using the secret shown once on creation.</p>
+      {/* Webhooks card */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex h-[52px] items-center border-b border-border px-5">
+          <span className="text-sm font-semibold text-foreground">Webhooks</span>
         </div>
-        <WebhookManager
-          subscriptions={subscriptions}
-          onCreateSub={createWebhookSubscriptionAction}
-          onDeleteSub={deleteWebhookSubscriptionAction}
-          isAdmin={context.role === 'admin'}
-        />
-      </section>
+        <div className="p-5">
+          <WebhookManager
+            subscriptions={subscriptions}
+            onCreateSub={createWebhookSubscriptionAction}
+            onDeleteSub={deleteWebhookSubscriptionAction}
+            isAdmin={context.role === 'admin'}
+          />
+        </div>
+      </div>
     </div>
   )
 }
