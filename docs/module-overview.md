@@ -1,16 +1,16 @@
 # Answering Service Module
 
-**Last Updated:** 2026-02-05  
-**Status:** ✅ Active  
-**Type:** ⚠️ **Proof of Concept**
+**Last Updated:** 2026-03-22
+**Version:** 1.1.0
+**Status:** ✅ Active
 
 ---
 
 ## Overview
 
-Customer-facing portal and onboarding wizard for Answering Service customers. This module provides a complete onboarding experience with a 6-step guided configuration wizard, dashboard, billing management, and message/call log viewing.
+Customer-facing portal and onboarding wizard for Answering Service customers. This module provides a complete onboarding experience with a 6-step guided configuration wizard, dashboard, billing management, on-call scheduling, and message/call log viewing — all behind a dark-sidebar design system.
 
-**⚠️ IMPORTANT**: This is a standalone POC module — not production-ready. See README for completion status.
+See the README for integration status (connecting a live telephony or billing provider).
 
 ---
 
@@ -243,8 +243,6 @@ CREATE TABLE answering_service_wizard_sessions (
 - Real telephony provider API integration
 - Production HIPAA compliance
 - Webhook handlers for real-time updates
-- Account and Settings pages
-- Password reset flow
 - Multi-user access per business
 
 ---
@@ -314,6 +312,6 @@ migrations/
 
 ---
 
-**Last Updated:** 2026-01-08
+**Last Updated:** 2026-03-22
 
 

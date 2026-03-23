@@ -223,12 +223,25 @@ docs/                              # PRD, vision, user stories
 |-------|-----------|
 | Framework | Next.js 15 (App Router) |
 | UI | React 19, Tailwind CSS v4, shadcn/ui |
-| Icons | Phosphor Icons |
+| Icons | Lucide Icons (desktop), Phosphor Icons (mobile) |
 | Database | Supabase (Postgres + RLS) |
 | Auth | Supabase Auth |
 | AI Coach | OpenAI GPT-4o-mini |
 | Validation | Zod + React Hook Form |
 | Language | TypeScript (strict) |
+
+---
+
+## Design
+
+The UI uses a consistent dark-sidebar design system across both portals:
+
+- **Sidebar:** `#0f172a` background, Lucide icons, user initials avatar + email at the bottom
+- **Font:** Manrope (headings and body)
+- **Cards:** `rounded-xl` with a `52px` header row and `border-border` dividers
+- **Tokens:** Tailwind semantic tokens (`bg-card`, `text-foreground`, `text-muted-foreground`, `bg-primary`) — swap your brand colours via CSS variables in `globals.css`
+
+The operator sidebar uses a purple logo badge (`#7c3aed`) to distinguish it visually from the client portal.
 
 ---
 
